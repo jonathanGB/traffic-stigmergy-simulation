@@ -1,0 +1,9 @@
+v1: 0,0
+vertex2: 0,100
+super_vertex: 200,100
+v3: 200,0
+
+v1:v3 1:0
+super_vertex:v3 2:1
+super_vertex:vertex2 1:1
+v1:vertex2 1:1
