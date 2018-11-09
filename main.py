@@ -3,6 +3,7 @@ import simpy as sim
 import numpy as np
 from link import Link
 from cache import Cache
+from traffic import Traffic
 
 """
 Returns a mxn matrix containing 1-capacity resources.
@@ -26,6 +27,10 @@ for intersections in E:
 
   links[intersections] = Link(env, intersections, cells, edge, Cache())
 
-# TODO: generate cars using a specific pattern. Probably have various pattern generators in a separate file.
+# TODO: The traffic strategy should probably be coming from command-line arguments.
+# Generate cars using a specific traffic pattern. These patterns can be found in `traffic.py`.
+traffic = Traffic(env, N, E)
+env.process(traffic.get_traffic_strategy("basic"))
 
-# TODO: run the Simpy environment
+# run the Simpy environment
+env.run(until=10)

@@ -18,13 +18,14 @@ Represents a car as a Simpy process.
  links: links of the road network
 """
 class Car:
+  id_generator = generate_id()
 
   def __init__(self, env, origin, destination, links):
     self.env = env
     self.origin = origin
     self.destination = destination
     self.links = links
-    self.id = generate_id()
+    self.id = next(self.id_generator)
     self.cell = None # reference to the cell's resource
     self.link = None # reference to the link on which the car currently is
 
@@ -53,3 +54,21 @@ class Car:
       # TODO: move the car by consuming the cell resource until destination reached
       # TODO: update the car analytics 
       # TODO: update graph with stigmergy data
+
+  """
+  Run the basic Car process (where cars pretty much go randomly until they reach their destination)
+  """
+  def run_basic(self):
+    print("Car", self.id, "is running the basic strategy from", self.origin, "to", self.destination)
+
+    while True:
+      yield self.env.timeout(1)
+
+      # TODO: if at intersection
+        # check if dead-end: break if so
+        # check if destination: break if so
+        # otherwise: request the list of outgoing links, and request an initial cell to one of the link, and consume the cell when available (aka move there)
+      # if at a cell: move forward
+      
+
+      print("moving car", self.id, "(but not really)")
