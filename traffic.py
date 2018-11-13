@@ -1,6 +1,5 @@
 from sys import exit
 from car import Car
-import numpy as np
 
 """
 Represents different traffic strategies.
@@ -14,23 +13,19 @@ class Traffic:
       "basic": self.run_basic
     }
 
-  def get_traffic_strategy(self, name):
+  def get_traffic_strategy(self, name, param={}):
     if name not in self.strategies:
       print("Strategy", name, "does not exist")
       exit()
 
-    return self.strategies[name]()
+    return self.strategies[name](param)
 
-  # Spawns a new car every new time step at a random intersection
+  # Spawns a new car every new time step at a random intersection (for a maximum of `num` cars)
   # Cars when spawned go to random links until they reach their destination (or a dead-end)
-  def run_basic(self):
+  def run_basic(self, param):
     print("start basic traffic")
-    intersections_list = list(self.intersections)
+    num = param["num"] if param["num"] else 5
 
-    while True:
+    for _ in range(num):
       yield self.env.timeout(1)
-      self.env.process(self.__generate_basic_car(intersections_list))
-
-  def __generate_basic_car(self, intersections_list):
-    origin, destination = np.random.choice(intersections_list, 2, replace=False)
-    return Car(self.env, origin, destination, self.links).run_basic()
+      self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections))

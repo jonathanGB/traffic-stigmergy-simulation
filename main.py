@@ -4,6 +4,8 @@ import numpy as np
 from link import Link
 from cache import Cache
 from traffic import Traffic
+from intersection import Intersection
+import commandline
 
 """
 Returns a mxn matrix containing 1-capacity resources.
@@ -16,21 +18,32 @@ The resources have 1-capacity, so that only one car is present in one cell
 def initialize_road_cells(env, m, n):
   return np.array([[sim.Resource(env, 1) for j in range(n)] for i in range(m)])
 
-# TODO: read command-line arguments to get the path to the topology file
-N, E = topo.topology_parser("networks/network1.txt")
+args = commandline.parse()
+
+N, E = topo.topology_parser(args["network"])
 
 env = sim.RealtimeEnvironment()
 links = {} # holds references to the links of the road network
-for intersections in E:
-  edge = E[intersections]
+intersections = {} # holds references to the intersections of the road network
+for trajectory in E:
+  edge = E[trajectory]
   cells = initialize_road_cells(env, edge['lanes'], edge['cells'])
 
-  links[intersections] = Link(env, intersections, cells, edge, Cache())
+  links[trajectory] = Link(env, cells, edge, Cache())
+  N[trajectory[0]]["out_links"].append(links[trajectory]) 
+  N[trajectory[1]]["in_links"].append(links[trajectory])
 
-# TODO: The traffic strategy should probably be coming from command-line arguments.
+for intersection_name in N:
+  intersection = N[intersection_name]
+  intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"])
+
+  # update links with newly created intersection
+  for in_link in intersection["in_links"]:
+    in_link.set_out_intersection(intersections[intersection_name])
+
 # Generate cars using a specific traffic pattern. These patterns can be found in `traffic.py`.
-traffic = Traffic(env, N, E)
-env.process(traffic.get_traffic_strategy("basic"))
+traffic = Traffic(env, intersections, links)
+env.process(traffic.get_traffic_strategy(args["strategy"], args["param"]))
 
 # run the Simpy environment
-env.run(until=10)
+env.run(until=args["until"])
