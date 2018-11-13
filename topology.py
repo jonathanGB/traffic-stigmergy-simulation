@@ -50,7 +50,11 @@ def topology_parser(path):
         exit()
 
       # valid vertex, store it
-      vertices[vertex_name] = (x,y)
+      vertices[vertex_name] = {
+        "pos": (x,y),
+        "in_links": [],
+        "out_links": []
+      }
       line = next(topo_iter)
 
     # We have passed the empty line, we now loop through the second set of lines.
@@ -71,7 +75,7 @@ def topology_parser(path):
       
       # Compute information about the edges.
       # Note that we don't store an edge if it contains no lanes (meaning that the opposite direction is a one-way).
-      l = dist(vertices[start], vertices[end])
+      l = dist(vertices[start]["pos"], vertices[end]["pos"])
       if forward > 0:
         vmax_f = get_vmax(forward)
         cells_f = int(l/vmax_f)
