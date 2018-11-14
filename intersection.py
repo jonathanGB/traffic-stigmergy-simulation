@@ -25,5 +25,6 @@ class Intersection:
   def __str__(self):
     return "Intersection {}".format(self.id)
 
+  # Note: This is only defined to satisfy the `heapq` library in `network.py`
   def __lt__(self, other):
     return True
