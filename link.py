@@ -66,3 +66,9 @@ class Link:
   """
   def get_weight(self):
     return self.data["cells"]
+
+  def __str__(self):
+    return "to {}".format(self.out_intersection)
+
+  def __repr__(self):
+    return self.__str__()

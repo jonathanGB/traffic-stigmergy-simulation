@@ -1,6 +1,7 @@
 from time import time
 import numpy as np
 from intersection import Intersection
+import network
 
 
 """
@@ -41,31 +42,63 @@ class Car:
 
   @staticmethod
   def generate_basic_car(env, links, intersections):
-    origin, destination = np.random.choice(list(intersections), 2, replace=False)
-    return Car(env, intersections[origin], intersections[destination], links).run_basic()
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    return Car(env, intersections[origin_name], intersections[destination_name], links).run_basic()
 
-  """
-  Returns a list of links to visit in order to get from the origin to the destination.
-  !! Not implemented yet !!
-  """
-  def get_shortest_path(self):
-    # TODO: implement Dijkstra's shortest path
-    return []
+  @staticmethod
+  def generate_blind_shortest_car(env, links, intersections):
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    links_to_visit = network.shortest_path(origin, destination, links, intersections)
+    return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
 
-  """
-  Run the Car process.
-  """
-  def run(self):
-    trajectory = self.get_shortest_path()
+  # def run(self):
+  #   trajectory = self.get_shortest_path()
 
-    analytics = {
-      "raw-time": time(),
-      "time-steps": 0
-    }
-    # while True:
-      # TODO: move the car by consuming the cell resource until destination reached
-      # TODO: update the car analytics 
-      # TODO: update graph with stigmergy data
+  #   analytics = {
+  #     "raw-time": time(),
+  #     "time-steps": 0
+  #   }
+  #   # while True:
+  #     # TODO: move the car by consuming the cell resource until destination reached
+  #     # TODO: update the car analytics 
+  #     # TODO: update graph with stigmergy data
+
+  # TODO
+  def run_blind_shortest(self, path):
+    print(self, "is running the blind-shortest strategy from", self.origin, "to", self.destination)
+    print("Its path will be (in reversed order):", path, "\n")
+
+
+    while len(path) > 0:
+      ongoing_link = path.pop()
+      cell, pos = ongoing_link.request_entry()
+      cell_req = cell.request()
+      yield cell_req # wait to have access to the cell
+      print(self, "has accessed the link toward intersection", ongoing_link.get_out_intersection(), "(", self.destination, ")")
+
+      # keep moving on the link
+      while True:
+        # now we have access to the cell
+        print(self, "moved to cell", pos)
+        yield self.env.timeout(1)
+
+        if ongoing_link.is_next_to_intersection(pos):
+          cell.release(cell_req)
+          break
+
+        next_cell, next_pos = ongoing_link.get_next_cell(pos)
+        next_cell_req = next_cell.request()
+        yield next_cell_req
+
+        cell.release(cell_req)
+        cell, pos, cell_req = next_cell, next_pos, next_cell_req
+
+      # car is now at a new intersection
+      self.curr_infra = ongoing_link.access_intersection()
+      print(self, "is at intersection", self.curr_infra)
+      yield self.env.timeout(1)
+
 
   """
   Run the basic Car process (where cars pretty much go randomly until they reach their destination)

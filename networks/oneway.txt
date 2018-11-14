@@ -1,0 +1,4 @@
+vinit: 0,0
+deadend: 100,0
+
+vinit:deadend 1:0

@@ -24,3 +24,6 @@ class Intersection:
 
   def __str__(self):
     return "Intersection {}".format(self.id)
+
+  def __lt__(self, other):
+    return True
