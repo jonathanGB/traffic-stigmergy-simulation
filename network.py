@@ -1,5 +1,5 @@
 import heapq
-from sys import maxsize
+import numpy as np
 
 def __default_weight_query(link):
   return link.get_weight()
@@ -15,9 +15,8 @@ def __get_visiting_path(curr_tup):
 
   return links_to_visit[:-1]
   
-
+# TODO: ADD COMENTS
 # Returns a list of links to visit in order to get from the origin to the destination.
-# TODO
 def shortest_path(start, end, links, intersections, weight_link_query=__default_weight_query):
   visited = set()
   intersection_mapper = {}
@@ -29,7 +28,7 @@ def shortest_path(start, end, links, intersections, weight_link_query=__default_
     if intersection == start:
       tup = (0, start, None, None)
     else:
-      tup = (maxsize, intersection, None, None)
+      tup = (np.inf, intersection, None, None)
 
     heapq.heappush(to_visit, tup)
     intersection_mapper[intersection] = tup

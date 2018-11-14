@@ -64,7 +64,12 @@ class Car:
   #     # TODO: update the car analytics 
   #     # TODO: update graph with stigmergy data
 
-  # TODO
+  """
+  Run the car process through the shortest path.
+  The shortest path in this process is blind to stigmergy.
+  Right now, the logic of this run is very similar to `run_basic`, except the links are popped
+  from the path list computed via Dijkstra (rather than a random walk).
+  """
   def run_blind_shortest(self, path):
     print(self, "is running the blind-shortest strategy from", self.origin, "to", self.destination)
     print("Its path will be (in reversed order):", path, "\n")
