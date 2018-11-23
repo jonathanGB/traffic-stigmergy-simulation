@@ -38,6 +38,12 @@ class Link:
   def access_intersection(self):
     return self.get_out_intersection()
 
+  """
+  To request entry to a link, this method checks if any 1st cell on any lane is free.
+  If not, returns a random cell.
+  As well, it returns the coordinates of the cell (lane #, cell index), so that we can move
+  the car accordingly when requesting the next cell in a lane (`get_next_cell`).
+  """
   def request_entry(self):
     entry_cells = self.cells[:,0]
 
@@ -48,15 +54,29 @@ class Link:
     i = np.random.randint(0, self.data["lanes"])
     return entry_cells[i], (i, 0)
 
+  """
+  Given a position, returns whether or not this cell is next to the end intersection of the current
+  link visited.
+  """
   def is_next_to_intersection(self, pos):
     return pos[1] == self.data["cells"] - 1
 
+  """
+  Returns the cell next to the one given. By next, we mean the next one when the car is moving forward.
+  """
   def get_next_cell(self, pos):
     if self.is_next_to_intersection(pos):
       raise StopIteration("Can't get next cell: next is an intersection")
 
     nextPos = (pos[0], pos[1]+1)
     return self.cells[nextPos], nextPos
+
+  """
+  Updates the link cache (for stigmergy) with the given delay provided by a car which has
+  finished traveling through the link.
+  """
+  def store_stigmergy_data(self, delay):
+    self.cache.store_data(delay + self.get_weight())
 
   """
   Returns the weight of this link.

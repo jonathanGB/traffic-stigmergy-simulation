@@ -1,5 +1,9 @@
 import argparse
 
+"""
+This is where we parse the command-line arguments.
+We return a dictionary representing the key-value pairs that `main.py` requires to launch the simulation.
+"""
 def parse():
   parser = argparse.ArgumentParser(description='Run the traffic simulation')
   

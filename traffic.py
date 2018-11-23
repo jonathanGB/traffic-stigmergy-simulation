@@ -21,23 +21,48 @@ class Traffic:
 
     return self.strategies[name](param)
 
-  # Spawns a new car every new time step at a random intersection (for a maximum of `num` cars)
-  # Cars when spawned follow the shortest path to their destination (Dijkstra)
+  """
+  Helper generator method that terminates once all the given processes are terminated as well.
+  We use this so that the simulation terminates when all the cars finish.
+  This is necessary, because the stigmergy caches' processes never end, 
+  so we must clue the environment when the simulation should really end.
+  """
+  def __wait_for_all_procs_to_finish(self, procs):
+    while len(procs) > 0:
+      active_procs = []
+      for proc in procs:
+        if not proc.processed:
+          active_procs.append(proc)
+
+      procs = active_procs
+      yield self.env.timeout(1)
+
+  """
+  Spawns a new car every new time step at a random intersection (for a maximum of `num` cars).
+  Cars when spawned follow the shortest path to their destination (Dijkstra).
+  """
   def run_blind_shortest(self, param):
     print("start blind-shortest traffic")
     num = param["num"] if param["num"] else 5
+    procs = []
     
     for _ in range(num):
       yield self.env.timeout(1)
-      self.env.process(Car.generate_blind_shortest_car(self.env, self.links, self.intersections))
+      procs.append(self.env.process(Car.generate_blind_shortest_car(self.env, self.links, self.intersections)))
 
+    yield from self.__wait_for_all_procs_to_finish(procs)
 
-  # Spawns a new car every new time step at a random intersection (for a maximum of `num` cars)
-  # Cars when spawned go to random links until they reach their destination (or a dead-end)
+  """
+  Spawns a new car every new time step at a random intersection (for a maximum of `num` cars).
+  Cars when spawned go to random links until they reach their destination (or a dead-end).
+  """
   def run_basic(self, param):
     print("start basic traffic")
     num = param["num"] if param["num"] else 5
+    procs = []
 
     for _ in range(num):
       yield self.env.timeout(1)
-      self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections))
+      procs.append(self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections)))
+
+    yield from self.__wait_for_all_procs_to_finish(procs)

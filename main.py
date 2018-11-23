@@ -5,6 +5,7 @@ from link import Link
 from cache import Cache
 from traffic import Traffic
 from intersection import Intersection
+from resource import Resource
 import commandline
 
 """
@@ -16,7 +17,7 @@ The resources have 1-capacity, so that only one car is present in one cell
  n: number of cells in one lane
 """
 def initialize_road_cells(env, m, n):
-  return np.array([[sim.Resource(env, 1) for j in range(n)] for i in range(m)])
+  return np.array([[Resource(env) for j in range(n)] for i in range(m)])
 
 args = commandline.parse()
 
@@ -29,7 +30,9 @@ for trajectory in E:
   edge = E[trajectory]
   cells = initialize_road_cells(env, edge['lanes'], edge['cells'])
 
-  links[trajectory] = Link(env, cells, edge, Cache())
+  stigmery_cache = Cache(env, edge['cells'])
+  env.process(stigmery_cache.update_stigmery()) # define a process for the stigmergy caches so that they update over time
+  links[trajectory] = Link(env, cells, edge, stigmery_cache)
   N[trajectory[0]]["out_links"].append(links[trajectory]) 
   N[trajectory[1]]["in_links"].append(links[trajectory])
 
@@ -43,7 +46,8 @@ for intersection_name in N:
 
 # Generate cars using a specific traffic pattern. These patterns can be found in `traffic.py`.
 traffic = Traffic(env, intersections, links)
-env.process(traffic.get_traffic_strategy(args["strategy"], args["param"]))
+cars_proc = env.process(traffic.get_traffic_strategy(args["strategy"], args["param"]))
 
 # run the Simpy environment
-env.run(until=args["until"])
+until = args["until"] if args["until"] else np.inf
+env.run(until=env.any_of([cars_proc, env.timeout(until)]))

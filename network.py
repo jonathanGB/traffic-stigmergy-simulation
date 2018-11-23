@@ -1,9 +1,16 @@
 import heapq
 import numpy as np
 
+"""
+Default query of the weight of a link.
+We only use the number of cells of a lane in Case 0: no information
+"""
 def __default_weight_query(link):
   return link.get_weight()
 
+"""
+Returns the list of links to visit (in reverse order) for the shortest path found using `shortest_path`.
+"""
 def __get_visiting_path(curr_tup):
   links_to_visit = []
 
@@ -15,8 +22,17 @@ def __get_visiting_path(curr_tup):
 
   return links_to_visit[:-1]
   
-# TODO: ADD COMENTS
-# Returns a list of links to visit in order to get from the origin to the destination.
+"""
+Applies Dijkstra's shortest path from `start` to `end` in a given graph made of `links` (edges)
+and `intersections` (nodes). A default parameters modulates how the weights of links are computed.
+See `generate_blind_shortest_car` in `car.py` for an example of its call.
+In the end, it returns [] if there is no path, otherwise, it returns the result of `__get_visiting_path`
+  start: Intersection
+  end: Intersection
+  links: dictionary of Link
+  intersections: dictionary of Intersection
+  weight_link_query: function that computes the weight of a given link
+"""
 def shortest_path(start, end, links, intersections, weight_link_query=__default_weight_query):
   visited = set()
   intersection_mapper = {}
