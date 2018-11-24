@@ -9,7 +9,8 @@ from resource import Resource
 import commandline
 
 """
-Returns a mxn matrix containing 1-capacity resources.
+Returns a mxn matrix containing 1-capacity resources, as well as the outgoing
+intersection cells (m of them).
 This matrix represents the cells where cars can be.
 The resources have 1-capacity, so that only one car is present in one cell
  env: simpy environment
@@ -17,7 +18,10 @@ The resources have 1-capacity, so that only one car is present in one cell
  n: number of cells in one lane
 """
 def initialize_road_cells(env, m, n):
-  return np.array([[Resource(env) for j in range(n)] for i in range(m)])
+  road_cells = np.array([[Resource(env) for j in range(n)] for i in range(m)])
+  out_intersec_cells = [Resource(env) for _ in range(m)]
+
+  return road_cells, out_intersec_cells
 
 args = commandline.parse()
 
@@ -28,11 +32,11 @@ links = {} # holds references to the links of the road network
 intersections = {} # holds references to the intersections of the road network
 for trajectory in E:
   edge = E[trajectory]
-  cells = initialize_road_cells(env, edge['lanes'], edge['cells'])
+  road_cells, out_intersec_cells = initialize_road_cells(env, edge['lanes'], edge['cells'])
 
   stigmery_cache = Cache(env, edge['cells'])
   env.process(stigmery_cache.update_stigmery()) # define a process for the stigmergy caches so that they update over time
-  links[trajectory] = Link(env, cells, edge, stigmery_cache)
+  links[trajectory] = Link(env, road_cells, out_intersec_cells, edge, stigmery_cache)
   N[trajectory[0]]["out_links"].append(links[trajectory]) 
   N[trajectory[1]]["in_links"].append(links[trajectory])
 

@@ -9,6 +9,13 @@ def __default_weight_query(link):
   return link.get_weight()
 
 """
+Query of the weight of a link based on its long-term stigmergy cost.
+By default (until updated), long-term stigmergy cost is the same as its default weight.
+"""
+def case1_weight_query(link):
+  return link.get_cache().get_long_term_stigmergy()
+
+"""
 Returns the list of links to visit (in reverse order) for the shortest path found using `shortest_path`.
 """
 def __get_visiting_path(curr_tup):

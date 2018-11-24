@@ -15,9 +15,11 @@ class Cache:
     self.buffer = []
     self.short_start_index = 0
 
+  def get_long_term_stigmergy(self):
+    return self.long
+
   def store_data(self, travel_time):
     self.buffer.append(travel_time)
-    print(self.buffer)
 
   def __update_short_term_stigmergy(self):
     data = np.array(self.buffer[self.short_start_index:])

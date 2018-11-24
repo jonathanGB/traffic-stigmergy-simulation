@@ -11,7 +11,8 @@ class Traffic:
     self.links = links
     self.strategies = {
       "basic": self.run_basic,
-      "blind-shortest": self.run_blind_shortest
+      "blind-shortest": self.run_blind_shortest,
+      "case1": self.run_case1
     }
 
   def get_traffic_strategy(self, name, param={}):
@@ -36,6 +37,21 @@ class Traffic:
 
       procs = active_procs
       yield self.env.timeout(1)
+
+  def run_case1(self, param):
+    print("start case1 (only long-term stigmergy) traffic")
+    num = param["num"] if param["num"] else 5
+    procs = []
+  
+    # All start the cars at the same time in this strategy.
+    # This induces more delays. We should probably keep adding more cars to test the strategies.
+    # To measure differences in case 1, the strategy should run more than 1440 iterations (because
+    # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
+    # we should use an environment (without real-time) so that iterations run as fast as possible.
+    for _ in range(num):
+      procs.append(self.env.process(Car.generate_case1_car(self.env, self.links, self.intersections)))
+
+    yield from self.__wait_for_all_procs_to_finish(procs)
 
   """
   Spawns a new car every new time step at a random intersection (for a maximum of `num` cars).

@@ -20,8 +20,9 @@ Every cell is represented as a Simpy resource with 1-capacity (so there's only o
 """
 class Link:
   
-  def __init__(self, env, cells, edge, cache):
+  def __init__(self, env, cells, out_intersec_cells, edge, cache):
     self.cells = cells
+    self.out_intersec_cells = out_intersec_cells
     self.cache = cache # holds stigmergy info for the lane
     self.env = env
     self.data = edge
@@ -33,10 +34,17 @@ class Link:
   def get_out_intersection(self):
     return self.out_intersection
 
+  def get_cache(self):
+    return self.cache
+
   # TODO: add resource to the intersection, so there's a limited amount of cars at the same time
   # at the intersection?
   def access_intersection(self):
     return self.get_out_intersection()
+
+  def get_intersection_cell(self, pos):
+    lane = pos[0]
+    return self.out_intersec_cells[lane]
 
   """
   To request entry to a link, this method checks if any 1st cell on any lane is free.

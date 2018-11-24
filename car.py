@@ -48,6 +48,19 @@ class Car:
     links_to_visit = network.shortest_path(origin, destination, links, intersections)
     return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
 
+  """
+  Factory of cars following case 1 (only long-term stigmergy).
+  Case 1 cars also use `run_blind_shortest`, the difference from case 0 (blind-shortest) is that
+  the path computed at first uses long-term stigmergy rather than simply the default weight of each links.
+  That change can be seen in the extra parameter of `network.shortest_path`.
+  """
+  @staticmethod
+  def generate_case1_car(env, links, intersections):
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
+    return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
+
   # def run(self):
   #   trajectory = self.get_shortest_path()
 
@@ -84,9 +97,19 @@ class Car:
         # now we have access to the cell
         yield self.env.timeout(1)
 
-        # we have reached the end of the link, we need to update stigmergy information about the visited link
+        # we have reached the end of the link, we need to update stigmergy information about the visited link.
+        # Notice, that we first need to request access to the intersection before.
+        # Initially, we didn't put a capacity for intersections, and so technically it could have been possible
+        # to have an infinity of cars at an intersection. This was especially bad when updating stigmergy caches,
+        # because the time spent in the intersection was not accounted. Now, we have a special cell (resource), one
+        # per outgoing lane to that intersection.
         if ongoing_link.is_next_to_intersection(pos):
+          intersec_cell = ongoing_link.get_intersection_cell(pos)
+          intersec_cell_req, intersec_cell_req_token = intersec_cell.request()
+          link_delay += yield from intersec_cell_req
+
           cell.release(cell_req_token)
+          intersec_cell.release(intersec_cell_req_token)
           ongoing_link.store_stigmergy_data(link_delay)
           break
 
@@ -100,7 +123,6 @@ class Car:
       # car is now at a new intersection
       self.curr_infra = ongoing_link.access_intersection()
       print(self, "is at intersection", self.curr_infra)
-      yield self.env.timeout(1)
 
 
   """
@@ -134,7 +156,12 @@ class Car:
         yield self.env.timeout(1)
 
         if ongoing_link.is_next_to_intersection(pos):
+          intersec_cell = ongoing_link.get_intersection_cell(pos)
+          intersec_cell_req, intersec_cell_req_token = intersec_cell.request()
+          yield from intersec_cell_req
+
           cell.release(cell_req_token)
+          intersec_cell.release(intersec_cell_req_token)
           break
 
         next_cell, next_pos = ongoing_link.get_next_cell(pos)
