@@ -15,6 +15,9 @@ class Cache:
     self.buffer = []
     self.short_start_index = 0
 
+  def get_short_term_stigmergy(self):
+    return self.short
+
   def get_long_term_stigmergy(self):
     return self.long
 

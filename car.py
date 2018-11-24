@@ -61,6 +61,28 @@ class Car:
     links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
     return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
 
+  """
+  Factory of cars following case 2 (long/short-term stigmergy).
+  Here, we use `run_dynamic` rather than `run_blind_shortest`. This is because every 5 iterations,
+  the path of the cars is updated based on stigmergy data.
+  Notice that `run_dynamic` takes a function as a 2nd parameter which defines how to update the path.
+  We use this functional abstraction so that we can still use `run_dynamic` in case3 and beyond,
+  simply by changing that update function.
+  """
+  @staticmethod
+  def generate_case2_car(env, links, intersections, omega):
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit, Car.__update_path_case2(destination, links, intersections, omega))
+
+  @staticmethod
+  def __update_path_case2(destination, links, intersections, omega):
+    def update_path(origin):
+      return network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
+
+    return update_path
+
   # def run(self):
   #   trajectory = self.get_shortest_path()
 
@@ -72,6 +94,65 @@ class Car:
   #     # TODO: move the car by consuming the cell resource until destination reached
   #     # TODO: update the car analytics 
   #     # TODO: update graph with stigmergy data
+
+  def run_dynamic(self, path, update_path):
+    print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
+    print("Its path will be (in reversed order):", path, "\n")
+    t = 0
+
+    while len(path) > 0:
+      ongoing_link = path.pop()
+      cell, pos = ongoing_link.request_entry()
+      cell_req, cell_req_token = cell.request()
+      link_delay = 0
+
+      delay = yield from cell_req # wait to have access to the cell
+      t += delay
+      link_delay += delay
+      print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
+      
+      # keep moving on the link
+      while True:
+        # now we have access to the cell
+        yield self.env.timeout(1)
+        t += 1
+
+        # update path every 5 minutes
+        if t >= 5:
+          t = 0
+          path = update_path(ongoing_link.get_out_intersection())
+
+
+        # we have reached the end of the link, we need to update stigmergy information about the visited link.
+        # Notice, that we first need to request access to the intersection before.
+        # Initially, we didn't put a capacity for intersections, and so technically it could have been possible
+        # to have an infinity of cars at an intersection. This was especially bad when updating stigmergy caches,
+        # because the time spent in the intersection was not accounted. Now, we have a special cell (resource), one
+        # per outgoing lane to that intersection.
+        if ongoing_link.is_next_to_intersection(pos):
+          intersec_cell = ongoing_link.get_intersection_cell(pos)
+          intersec_cell_req, intersec_cell_req_token = intersec_cell.request()
+          delay = yield from intersec_cell_req
+          t += delay
+          link_delay += delay
+
+          cell.release(cell_req_token)
+          intersec_cell.release(intersec_cell_req_token)
+          ongoing_link.store_stigmergy_data(link_delay)
+          break
+
+        next_cell, next_pos = ongoing_link.get_next_cell(pos)
+        next_cell_req, next_cell_req_token = next_cell.request()
+        delay = yield from next_cell_req
+        t += delay
+        link_delay += delay
+
+        cell.release(cell_req_token)
+        cell, pos, cell_req, cell_req_token = next_cell, next_pos, next_cell_req, next_cell_req_token
+
+      # car is now at a new intersection
+      self.curr_infra = ongoing_link.access_intersection()
+      print(self, "is at intersection", self.curr_infra)
 
   """
   Run the car process through the shortest path.

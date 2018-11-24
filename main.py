@@ -23,6 +23,21 @@ def initialize_road_cells(env, m, n):
 
   return road_cells, out_intersec_cells
 
+"""
+Short-term stigmergy relies on the fact that this information is only available within a certain range.
+To ensure this, we define a range (or radius) from a given intersection (`intersec`). If the Euclidian
+distance from that intersection to any nodes is smaller or equal to that range, then all connected Links
+to that other node is considered to be visible to `intersec`.
+This is an implementation decision, as it was not explained in the paper.
+"""
+def get_visible_links_within_area(N, links, intersec, range):
+  visibles = set()
+  for start, end in links:
+    if topo.dist(N[start]["pos"], intersec["pos"]) <= range or topo.dist(N[end]["pos"], intersec["pos"]) <= range:
+      visibles.add(links[(start, end)])
+
+  return visibles
+
 args = commandline.parse()
 
 N, E = topo.topology_parser(args["network"])
@@ -42,7 +57,9 @@ for trajectory in E:
 
 for intersection_name in N:
   intersection = N[intersection_name]
-  intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"])
+  visible_links = get_visible_links_within_area(N, links, intersection, args["range"])
+
+  intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"], visible_links)
 
   # update links with newly created intersection
   for in_link in intersection["in_links"]:

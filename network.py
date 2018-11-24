@@ -16,6 +16,25 @@ def case1_weight_query(link):
   return link.get_cache().get_long_term_stigmergy()
 
 """
+Query of the weight of a link based on its long/short-term stigmergy combination.
+If short-term stigmergy of a link is not visible from the Intersection `start`, then
+it is assumed that its value is simply the same as its long-term value (for that link).
+"""
+def case2_weight_query(start, omega):
+  def weight_query(link):
+    vl = case1_weight_query(link)
+
+    if link in start.get_links_in_area():
+      vs = link.get_cache().get_short_term_stigmergy()
+      return omega * vl + (1.0-omega) * vs
+
+    return vl
+
+  return weight_query
+
+
+
+"""
 Returns the list of links to visit (in reverse order) for the shortest path found using `shortest_path`.
 """
 def __get_visiting_path(curr_tup):
