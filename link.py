@@ -17,6 +17,7 @@ Every cell is represented as a Simpy resource with 1-capacity (so there's only o
    "cap":   capacity of the link (number of cells * number of lanes)
   }
  cache: stigmergy cache
+ num_cars: number of cars on the link at the current time
 """
 class Link:
   
@@ -27,6 +28,7 @@ class Link:
     self.env = env
     self.data = edge
     self.out_intersection = None # Nil, until set by the setter (Intersections are created after Links)
+    self.num_cars = 0 # how many cars on the link currently
 
   def set_out_intersection(self, intersection):
     self.out_intersection = intersection
@@ -37,9 +39,21 @@ class Link:
   def get_cache(self):
     return self.cache
 
-  # TODO: add resource to the intersection, so there's a limited amount of cars at the same time
-  # at the intersection?
+  def get_cap(self):
+    return self.data["cap"]
+
+  def get_num_cars(self):
+    return self.num_cars
+
+  # Use this method to update the number of cars on the current link
+  # "1" to increment, "-1" to decrement
+  def update_num_cars(self, delta):
+    self.num_cars += delta
+
+  # At this point, the car has accessed the buffer to the intersection.
+  # We estimate that the car is no longer on the link it used to be at this point.
   def access_intersection(self):
+    self.update_num_cars(-1) # car has left the link
     return self.get_out_intersection()
 
   def get_intersection_cell(self, pos):
@@ -53,6 +67,7 @@ class Link:
   the car accordingly when requesting the next cell in a lane (`get_next_cell`).
   """
   def request_entry(self):
+    self.update_num_cars(1) # 1 new car on the link
     entry_cells = self.cells[:,0]
 
     for i, entry_cell in enumerate(entry_cells):

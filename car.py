@@ -23,7 +23,11 @@ class Car:
     self.id = next(self.id_generator)
     self.cell = None # reference to the cell's resource
     self.curr_infra = origin # reference to the link OR intersection on which the car currently is
+    self.total_delay = 0 # incurred delay since the beginning
 
+  def get_total_delay(self):
+    return self.total_delay
+  
   def set_curr_infra(self, infra):
     self.curr_infra = infra
 
@@ -73,7 +77,8 @@ class Car:
   def generate_case2_car(env, links, intersections, omega):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
-    links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
+    links_to_visit =  Car.__update_path_case2(destination, links, intersections, omega)(origin)
+
     return Car(env, origin, destination, links).run_dynamic(links_to_visit, Car.__update_path_case2(destination, links, intersections, omega))
 
   @staticmethod
@@ -83,22 +88,55 @@ class Car:
 
     return update_path
 
-  # def run(self):
-  #   trajectory = self.get_shortest_path()
+  @staticmethod
+  def generate_case3_car(env, links, intersections, omega, alpha, beta):
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    
+    links_to_visit = Car.__update_path_case3(destination, links, intersections, omega, alpha, beta)(origin)
 
-  #   analytics = {
-  #     "raw-time": time(),
-  #     "time-steps": 0
-  #   }
-  #   # while True:
-  #     # TODO: move the car by consuming the cell resource until destination reached
-  #     # TODO: update the car analytics 
-  #     # TODO: update graph with stigmergy data
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit, Car.__update_path_case3(destination, links, intersections, omega, alpha, beta))
+
+  @staticmethod
+  def __update_path_case3(destination, links, intersections, omega, alpha, beta):
+    def update_path(origin):
+      # historic short/long-term stigmergy
+      path_short_long = network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
+      
+      # compute heuristic path using anticipatory knowledge
+      path_anticip = network.shortest_path(origin, destination, links, intersections, network.anticipatory_weight_query(origin, alpha, beta))
+      
+      # specific to case 3, choose random path between the two strategies (case 4/5: involve allocation to decide)
+      links_to_visit = path_short_long if np.random.uniform() < 0.5 else path_anticip
+
+      return links_to_visit
+
+    return update_path
+
+  def __update_link_intentions(self, links):
+    cap_time = 10
+    future_time = 0
+
+    for link in reversed(links):
+      time_to_traverse_link = link.get_weight()
+      future_time += time_to_traverse_link
+
+      # update time when the car should be on the link.
+      # cap_time is 10, because we only look 10 minutes in the future.
+      # if future_time >= cap_time, we update the stigmergy for 10 minutes in the future, and stop.
+      if future_time < cap_time:
+        link.get_cache().increment_anticip_stigmergy(self, future_time)
+      else:
+        link.get_cache().increment_anticip_stigmergy(self, cap_time)
+        break
 
   def run_dynamic(self, path, update_path):
     print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
     print("Its path will be (in reversed order):", path, "\n")
     t = 0
+    
+    # update intentions in next 10 mins (stigmergy caches)
+    self.__update_link_intentions(path)
 
     while len(path) > 0:
       ongoing_link = path.pop()
@@ -121,7 +159,9 @@ class Car:
         if t >= 5:
           t = 0
           path = update_path(ongoing_link.get_out_intersection())
-
+          
+          # update intentions in next 10 mins (stigmergy caches)
+          self.__update_link_intentions(path)
 
         # we have reached the end of the link, we need to update stigmergy information about the visited link.
         # Notice, that we first need to request access to the intersection before.
@@ -151,6 +191,7 @@ class Car:
         cell, pos, cell_req, cell_req_token = next_cell, next_pos, next_cell_req, next_cell_req_token
 
       # car is now at a new intersection
+      self.total_delay += link_delay # should be useful for case 6
       self.curr_infra = ongoing_link.access_intersection()
       print(self, "is at intersection", self.curr_infra)
 

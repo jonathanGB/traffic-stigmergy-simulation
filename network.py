@@ -33,6 +33,15 @@ def case2_weight_query(start, omega):
   return weight_query
 
 
+def anticipatory_weight_query(start, alpha, beta):
+  def weight_query(link):
+    vol, _ = link.get_cache().get_anticip_stigmergy()
+    cap = link.get_cap()
+    t0 = link.get_weight()
+
+    return t0 * (1.0 + alpha * ((vol / (cap * 0.4))**beta))
+  
+  return weight_query
 
 """
 Returns the list of links to visit (in reverse order) for the shortest path found using `shortest_path`.
