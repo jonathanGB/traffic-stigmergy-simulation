@@ -117,6 +117,7 @@ class Car:
     cap_time = 10
     future_time = 0
 
+    # We go in reversed order because the links are visited in reversed order.
     for link in reversed(links):
       time_to_traverse_link = link.get_weight()
       future_time += time_to_traverse_link
@@ -191,7 +192,7 @@ class Car:
         cell, pos, cell_req, cell_req_token = next_cell, next_pos, next_cell_req, next_cell_req_token
 
       # car is now at a new intersection
-      self.total_delay += link_delay # should be useful for case 6
+      self.total_delay += link_delay # should be useful for case 5
       self.curr_infra = ongoing_link.access_intersection()
       print(self, "is at intersection", self.curr_infra)
 
