@@ -14,8 +14,7 @@ class Traffic:
       "blind-shortest": self.run_blind_shortest,
       "case1": self.run_case1,
       "case2": self.run_case2,
-      "case3": self.run_case3,
-      "case4": self.run_case4
+      "case3": self.run_case3
     }
 
   def get_traffic_strategy(self, name, param={}):
@@ -41,29 +40,6 @@ class Traffic:
       procs = active_procs
       yield self.env.timeout(1)
 
-  def run_case4(self, param):
-    print("start case4 (anticipatory stigmergy with allocation strategy) traffic")
-    num = param["num"] if param["num"] else 5
-    omega = param["omega"]
-    alpha = param["alpha"]
-    beta = param["beta"]
-    procs = []
-
-    # All start the cars at the same time in this strategy.
-    # This induces more delays. We should probably keep adding more cars to test the strategies.
-    # To measure differences in case 1, the strategy should run more than 1440 iterations (because
-    # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
-    # we should use an environment (without real-time) so that iterations run as fast as possible.
-    for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta)))
-
-    yield self.env.timeout(20)
-
-    for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta)))
-
-    yield from self.__wait_for_all_procs_to_finish(procs)
-
   def run_case3(self, param):
     print("start case3 (anticipatory stigmergy without allocation strategy) traffic")
     num = param["num"] if param["num"] else 5
@@ -71,7 +47,7 @@ class Traffic:
     alpha = param["alpha"]
     beta = param["beta"]
     procs = []
-
+  
     # All start the cars at the same time in this strategy.
     # This induces more delays. We should probably keep adding more cars to test the strategies.
     # To measure differences in case 1, the strategy should run more than 1440 iterations (because
