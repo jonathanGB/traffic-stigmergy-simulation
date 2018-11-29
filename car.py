@@ -3,6 +3,7 @@ import numpy as np
 from intersection import Intersection
 from util import generate_id
 import network
+import topology
 
 
 """
@@ -66,6 +67,51 @@ class Car:
     return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
 
   """
+  Allocation rules
+  """
+  @staticmethod
+  def __allocate_anticip_never():
+    def allocate_anticip(car, link):
+      return False
+
+    return allocate_anticip
+
+  @staticmethod
+  def __allocate_anticip_always():
+    def allocate_anticip(car, link):
+      return True
+
+    return allocate_anticip
+
+  @staticmethod
+  def __allocate_anticip_random():
+    def allocate_anticip(car, link):
+      return np.random.uniform() < 0.5
+
+    return allocate_anticip
+
+  @staticmethod
+  def __allocate_anticip_by_distance(intersections, perc):
+    def allocate_anticip(car, link):
+      #own_distance = topology.dist(car.curr_infra["pos"], car.destination["pos"])
+      own_distance = np.random.uniform()
+      shorter = 0
+      longer = 0
+
+      other_cars = link.get_cache().get_anticip_buffer();
+      for other in other_cars:
+        #other_distance = topology.dist(car.curr_infra, other.destination)
+        other_distance = np.random.uniform()
+        if own_distance > other_distance:
+          shorter += 1
+        else:
+          longer += 1
+
+      return longer < perc * (longer + shorter + 1)
+
+    return allocate_anticip
+
+  """
   Factory of cars following case 2 (long/short-term stigmergy).
   Here, we use `run_dynamic` rather than `run_blind_shortest`. This is because every 5 iterations,
   the path of the cars is updated based on stigmergy data.
@@ -77,13 +123,15 @@ class Car:
   def generate_case2_car(env, links, intersections, omega):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
-    links_to_visit =  Car.__update_path_case2(destination, links, intersections, omega)(origin)
+    links_to_visit =  Car.__update_path_case2(destination, links, intersections, omega)(origin, False)
 
-    return Car(env, origin, destination, links).run_dynamic(links_to_visit, Car.__update_path_case2(destination, links, intersections, omega))
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
+                                                            Car.__update_path_case2(destination, links, intersections, omega),
+                                                            Car.__allocate_anticip_never())
 
   @staticmethod
   def __update_path_case2(destination, links, intersections, omega):
-    def update_path(origin):
+    def update_path(origin, allocated):
       return network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
 
     return update_path
@@ -92,24 +140,53 @@ class Car:
   def generate_case3_car(env, links, intersections, omega, alpha, beta):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
-    
-    links_to_visit = Car.__update_path_case3(destination, links, intersections, omega, alpha, beta)(origin)
 
-    return Car(env, origin, destination, links).run_dynamic(links_to_visit, Car.__update_path_case3(destination, links, intersections, omega, alpha, beta))
+    links_to_visit = Car.__update_path_case3(destination, links, intersections, omega, alpha, beta)(origin, False)
+
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
+                                                            Car.__update_path_case3(destination, links, intersections,
+                                                                                    omega, alpha, beta),
+                                                            Car.__allocate_anticip_random())
 
   @staticmethod
   def __update_path_case3(destination, links, intersections, omega, alpha, beta):
-    def update_path(origin):
+    def update_path(origin, allocated):
       # historic short/long-term stigmergy
-      path_short_long = network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
-      
+      path_short_long = network.shortest_path(origin, destination, links, intersections,
+                                              network.case2_weight_query(origin, omega))
+
       # compute heuristic path using anticipatory knowledge
-      path_anticip = network.shortest_path(origin, destination, links, intersections, network.anticipatory_weight_query(origin, alpha, beta))
-      
+      path_anticip = network.shortest_path(origin, destination, links, intersections,
+                                           network.anticipatory_weight_query(origin, alpha, beta))
+
       # specific to case 3, choose random path between the two strategies (case 4/5: involve allocation to decide)
       links_to_visit = path_short_long if np.random.uniform() < 0.5 else path_anticip
 
       return links_to_visit
+
+    return update_path
+
+  @staticmethod
+  def generate_case4_car(env, links, intersections, omega, alpha, beta):
+    origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+
+    links_to_visit = Car.__update_path_case4(destination, links, intersections, omega, alpha, beta)(origin, False)
+
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
+                                                            Car.__update_path_case4(destination, links, intersections,
+                                                                                    omega, alpha, beta),
+                                                            Car.__allocate_anticip_by_distance(intersections, 0.5))
+
+  @staticmethod
+  def __update_path_case4(destination, links, intersections, omega, alpha, beta):
+    def update_path(origin, allocated):
+      if allocated:
+        return network.shortest_path(origin, destination, links, intersections,
+                                     network.anticipatory_weight_query(origin, alpha, beta))
+      else:
+        return network.shortest_path(origin, destination, links, intersections,
+                                              network.case2_weight_query(origin, omega))
 
     return update_path
 
@@ -131,7 +208,7 @@ class Car:
         link.get_cache().increment_anticip_stigmergy(self, cap_time)
         break
 
-  def run_dynamic(self, path, update_path):
+  def run_dynamic(self, path, update_path, allocate_anticip):
     print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
     print("Its path will be (in reversed order):", path, "\n")
     t = 0
@@ -159,7 +236,9 @@ class Car:
         # update path every 5 minutes
         if t >= 5:
           t = 0
-          path = update_path(ongoing_link.get_out_intersection())
+          allocated = allocate_anticip(self, ongoing_link)
+
+          path = update_path(ongoing_link.get_out_intersection(), allocated)
           
           # update intentions in next 10 mins (stigmergy caches)
           self.__update_link_intentions(path)
