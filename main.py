@@ -59,7 +59,7 @@ for intersection_name in N:
   intersection = N[intersection_name]
   visible_links = get_visible_links_within_area(N, links, intersection, args["range"])
 
-  intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"], visible_links)
+  intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"], visible_links, intersection["pos"])
 
   # update links with newly created intersection
   for in_link in intersection["in_links"]:
