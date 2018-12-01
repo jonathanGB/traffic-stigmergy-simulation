@@ -26,6 +26,9 @@ class Cache:
   def get_anticip_stigmergy(self):
     return len(self.anticip), self.anticip
 
+  def get_anticip_buffer(self):
+    return self.anticip_buffer
+
   def store_data(self, travel_time):
     self.buffer.append(travel_time)
 
