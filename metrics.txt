@@ -1,0 +1,5 @@
+metrics to track
+
+per-car metric: total delay, total travel time, total distance traveled, additional travel distance relative to shortest path, and average speed
+
+per-link metrics (congestion-related metrics): percentage of time a request_entry failed (no available slot -> congestion), percentage of time moving to next cell for cars traveling in link failed, average/max/min speed of cars going through the link

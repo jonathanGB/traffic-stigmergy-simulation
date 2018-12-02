@@ -48,6 +48,7 @@ class Traffic:
     omega = param["omega"]
     alpha = param["alpha"]
     beta = param["beta"]
+    perc = param["perc"]
     procs = []
 
     # All start the cars at the same time in this strategy.
@@ -56,21 +57,22 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
   def run_case4(self, param):
-    print("start case4 (anticipatory stigmergy with allocation strategy) traffic")
+    print("start case4 (anticipatory stigmergy with allocation strategy by distance) traffic")
     num = param["num"] if param["num"] else 5
     omega = param["omega"]
     alpha = param["alpha"]
     beta = param["beta"]
+    perc = param["perc"]
     procs = []
 
     # All start the cars at the same time in this strategy.
@@ -79,17 +81,17 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
   def run_case3(self, param):
-    print("start case3 (anticipatory stigmergy without allocation strategy) traffic")
+    print("start case3 (anticipatory stigmergy without allocation strategy by delay) traffic")
     num = param["num"] if param["num"] else 5
     omega = param["omega"]
     alpha = param["alpha"]

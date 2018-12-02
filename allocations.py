@@ -1,4 +1,4 @@
-# NOTE: THIS FILE IS NOT BEING USED!
+# NOTE: THIS FILE IS NOT BEING USED! Will use it later to generalize allocation code in car.py
 
 # # existing strategies:
 # residual distance

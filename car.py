@@ -193,7 +193,7 @@ class Car:
     return update_path
 
   @staticmethod
-  def generate_case4_car(env, links, intersections, omega, alpha, beta):
+  def generate_case4_car(env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
@@ -202,10 +202,10 @@ class Car:
     return Car(env, origin, destination, links).run_dynamic(links_to_visit,
                                                             Car.__update_path_allocated_case(destination, links, intersections,
                                                                                     omega, alpha, beta),
-                                                            Car.__allocate_anticip_by_distance(0.5))
+                                                            Car.__allocate_anticip_by_distance(perc))
 
   @staticmethod
-  def generate_case5_car(env, links, intersections, omega, alpha, beta):
+  def generate_case5_car(env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
@@ -214,7 +214,7 @@ class Car:
     return Car(env, origin, destination, links).run_dynamic(links_to_visit,
                                                             Car.__update_path_allocated_case(destination, links, intersections,
                                                                                     omega, alpha, beta),
-                                                            Car.__allocate_anticip_by_delay(0.5))
+                                                            Car.__allocate_anticip_by_delay(perc))
 
   @staticmethod
   def __update_path_allocated_case(destination, links, intersections, omega, alpha, beta):
