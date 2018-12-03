@@ -3,7 +3,7 @@ import numpy as np
 from intersection import Intersection
 from util import generate_id
 import network
-import topology
+from topology import dist
 
 
 """
