@@ -167,54 +167,30 @@ class Car:
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
-    links_to_visit = Car.__update_path_case3(destination, links, intersections, omega, alpha, beta)(origin, False)
+    update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
+    links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
-                                                            Car.__update_path_case3(destination, links, intersections,
-                                                                                    omega, alpha, beta),
-                                                            Car.__allocate_anticip_random())
-
-  @staticmethod
-  def __update_path_case3(destination, links, intersections, omega, alpha, beta):
-    def update_path(origin, allocated):
-      # historic short/long-term stigmergy
-      path_short_long = network.shortest_path(origin, destination, links, intersections,
-                                              network.case2_weight_query(origin, omega))
-
-      # compute heuristic path using anticipatory knowledge
-      path_anticip = network.shortest_path(origin, destination, links, intersections,
-                                           network.anticipatory_weight_query(origin, alpha, beta))
-
-      # specific to case 3, choose random path between the two strategies (case 4/5: involve allocation to decide)
-      links_to_visit = path_short_long if np.random.uniform() < 0.5 else path_anticip
-
-      return links_to_visit
-
-    return update_path
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_random())
 
   @staticmethod
   def generate_case4_car(env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
-    links_to_visit = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)(origin, False)
+    update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
+    links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
-                                                            Car.__update_path_allocated_case(destination, links, intersections,
-                                                                                    omega, alpha, beta),
-                                                            Car.__allocate_anticip_by_distance(perc))
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_distance(perc))
 
   @staticmethod
   def generate_case5_car(env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
-    links_to_visit = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)(origin, False)
+    update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
+    links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links).run_dynamic(links_to_visit,
-                                                            Car.__update_path_allocated_case(destination, links, intersections,
-                                                                                    omega, alpha, beta),
-                                                            Car.__allocate_anticip_by_delay(perc))
+    return Car(env, origin, destination, links).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_delay(perc))
 
   @staticmethod
   def __update_path_allocated_case(destination, links, intersections, omega, alpha, beta):
@@ -222,8 +198,8 @@ class Car:
       if allocated:
         return network.shortest_path(origin, destination, links, intersections,
                                      network.anticipatory_weight_query(origin, alpha, beta))
-      else:
-        return network.shortest_path(origin, destination, links, intersections,
+
+      return network.shortest_path(origin, destination, links, intersections,
                                               network.case2_weight_query(origin, omega))
 
     return update_path
