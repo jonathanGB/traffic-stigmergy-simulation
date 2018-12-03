@@ -101,7 +101,7 @@ class Car:
       for id in other_cars:
         buf = other_cars[id]
         for other in buf:
-          other_distance = topology.dist(car.curr_infra.get_pos(), other.destination.get_pos())
+          other_distance = dist(car.curr_infra.get_pos(), other.destination.get_pos())
           if own_distance > other_distance:
             shorter += 1
           else:
