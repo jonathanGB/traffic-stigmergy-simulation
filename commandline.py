@@ -29,6 +29,8 @@ def parse():
   parser.add_argument('--range', type=non_negative_float, default=1.0, help="Range of visibility for short-term stigmergy")
   parser.add_argument('--alpha', type=non_negative_float, default=0.48, help="Specify the alpha parameter in the anticipatory heuristic")
   parser.add_argument('--beta', type=probability_float, default=2.48, help="Specify the beta parameter in the anticipatory heuristic")
+  parser.add_argument('--perc', type=probability_float, default=0.5, help="Specify the congestion criteria (percent allocated) in anticipatory stigmergy with allocation")
+
 
   args = vars(parser.parse_args())
 
@@ -41,6 +43,7 @@ def parse():
       "num": args["num"],
       "omega": args["omega"],
       "alpha": args["alpha"],
-      "beta": args["beta"]
+      "beta": args["beta"],
+      "perc": args["perc"]
     }
   }
