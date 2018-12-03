@@ -93,7 +93,7 @@ class Car:
   @staticmethod
   def __allocate_anticip_by_distance(perc):
     def allocate_anticip(car, link):
-      own_distance = topology.dist(car.curr_infra.get_pos(), car.destination.get_pos())
+      own_distance = dist(car.curr_infra.get_pos(), car.destination.get_pos())
       shorter = 0
       longer = 0
 
