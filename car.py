@@ -157,7 +157,7 @@ class Car:
 
   @staticmethod
   def __update_path_case2(destination, links, intersections, omega):
-    def update_path(origin, allocated):
+    def update_path(origin, _):
       return network.shortest_path(origin, destination, links, intersections, network.case2_weight_query(origin, omega))
 
     return update_path
