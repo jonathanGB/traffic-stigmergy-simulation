@@ -1,5 +1,6 @@
 from sys import exit
 from car import Car
+from math import ceil
 
 """
 Represents different traffic strategies.
@@ -182,7 +183,7 @@ class Traffic:
 
   def run_nyc_weekday_basic(self, param):
     """
-    Runs basic traffic strategy (Dykstra shortest path) on NYC grid with week day
+    Runs basic traffic strategy (Dijkstra shortest path) on NYC grid with week day
     traffic patterns
     """
     print("start nyc weekday basic traffic")
@@ -190,13 +191,15 @@ class Traffic:
     hourly_traffic = [0.46,	0.29, 0.19,	0.16, 0.16,	0.27, 0.58, 0.94, 1.00,	0.93,\
                 0.85, 0.84,	0.84, 0.83,	0.86, 0.88,	0.86, 0.87,	0.87, 0.88,	0.82,\
                 0.78, 0.76, 0.71] #Traffic as % of max, hourly from 12-1am to 11pm-12am
-    num = param["num"] if param["num"] else 360 #1440 minutes in 24 hours
-    for i in range(num):
-      #yield self.env.timeout(1)
-      hour = int(i/60) #Hour on 24-hour clock
-      n_cars = int(3.5 * hourly_traffic[hour]) #number of cars per minute
-      for j in range(n_cars): #Loop to generate multiple cars
+
+    for i in range(1440):
+      hour = i // 60 #Hour on 24-hour clock
+      n_cars = ceil(5 * hourly_traffic[hour]) #number of cars per minute
+      for _ in range(n_cars): #Loop to generate multiple cars
         procs.append(self.env.process(Car.generate_nyc_car(self.env, self.links, self.intersections)))
+
+      yield self.env.timeout(1)
+
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -204,16 +207,16 @@ class Traffic:
   Spawns a new car every new time step at a random intersection (for a maximum of `num` cars).
   Cars when spawned go to random links until they reach their destination (or a dead-end).
   """
-  def run_nyc_weekend(self, param):
-    print("start nyc weekend traffic")
-    time = 0 #hour of day on 24 hour clock
-    hourly_traffic = [0.67, 0.53, 0.43, 0.35, 0.28, 0.20, 0.25, 0.36, 0.52,\
-            0.65, 0.74, 0.80, 0.84, 0.84, 0.83, 0.80, 0.80, 0.81, 0.84, 0.80,\
-            0.73, 0.68, 0.65, 0.61] #Traffic as % of max, hourly from 12-1am to 11pm-12am
-    num = param["num"] if param["num"] else 10 * int(hourly[time]) #~300 cars per minute would be rush-hour traffic
-    procs = []
-    for _ in range(num):
-      yield self.env.timeout(1)
-      procs.append(self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections)))
+  # def run_nyc_weekend(self, param):
+  #   print("start nyc weekend traffic")
+  #   time = 0 #hour of day on 24 hour clock
+  #   hourly_traffic = [0.67, 0.53, 0.43, 0.35, 0.28, 0.20, 0.25, 0.36, 0.52,\
+  #           0.65, 0.74, 0.80, 0.84, 0.84, 0.83, 0.80, 0.80, 0.81, 0.84, 0.80,\
+  #           0.73, 0.68, 0.65, 0.61] #Traffic as % of max, hourly from 12-1am to 11pm-12am
+  #   num = param["num"] if param["num"] else 10 * int(hourly[time]) #~300 cars per minute would be rush-hour traffic
+  #   procs = []
+  #   for _ in range(num):
+  #     yield self.env.timeout(1)
+  #     procs.append(self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections)))
 
-    yield from self.__wait_for_all_procs_to_finish(procs)
+  #   yield from self.__wait_for_all_procs_to_finish(procs)
