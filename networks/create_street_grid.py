@@ -16,11 +16,11 @@ f.close()
 
 #Manhattan Grid Creation Script
 #Includes all real manhattan streets from 5th to 11th ave and 42nd to 57th st
-f = open('manhattan_accidents_construction.txt','w+')
+f = open('manhattan_construction_accidents.txt','w+')
 #Make intersections
 for i in range(7): #x direction (E->W)
     for j in range(16): #y direction (S->N)
-        f.write("v%d_%d: %d,%d\r\n" % (i+1, j+1, i*45, j*13))
+        f.write("v%d_%d: %d,%d\r\n" % (i+1, j+1, i*1500, j*250))
 f.write("\r\n")
 
 #Make edges
@@ -29,6 +29,7 @@ f.write("\r\n")
 avs = ['3:3', '5:0', '0:5', '5:0', '0:5', '5:0', '0:5'] #Lane #s Avs 11th - 5th
 sts = ['2:2', '0:2', '2:0', '0:2', '2:0', '0:2', '2:0', '0:2', '2:0', '0:2', \
             '2:0', '0:2', '2:0', '0:2', '2:0', '2:2'] #Lane #s Sts 42nd-57th
+
 #Bad weather setting - Reduce lanes by 50%, rounded down
 avs = ['1:1', '2:0', '0:2', '2:0', '0:2', '2:0', '0:2'] #Lane #s Avs 11th - 5th
 sts = ['1:1', '0:1', '1:0', '0:1', '1:0', '0:1', '1:0', '0:1', '1:0', '0:1', \
@@ -39,13 +40,12 @@ avs = ['1:1', '5:0', '0:5', '5:0', '0:5', '5:0', '0:5'] #Lane #s Avs 11th - 5th
 sts = ['2:2', '0:2', '2:0', '0:2', '2:0', '0:2', '2:0', '0:2', '2:0', '0:2', \
             '2:0', '0:2', '2:0', '0:2', '2:0', '2:2'] #Lane #s Sts 42nd-57th ACCIDENT CHANGES MADE MANUALLY AFTER
 
-
 #Set avenue edges S to N
 for i in range(15):
     for j in range(7):
-        f.write("v%d_%d:v%d_%d: %s\r\n" % (j+1, i+1, j+1, i+2, avs[j]))
+        f.write("v%d_%d:v%d_%d %s\r\n" % (j+1, i+1, j+1, i+2, avs[j]))
 #Set street edges W to E
 for i in range(6):
     for j in range(16):
-        f.write("v%d_%d:v%d_%d: %s\r\n" % (i+1, j+1, i+2, j+1, sts[j]))
+        f.write("v%d_%d:v%d_%d %s\r\n" % (i+1, j+1, i+2, j+1, sts[j]))
 f.close()
