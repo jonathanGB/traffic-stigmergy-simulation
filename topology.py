@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from sys import exit
+from math import ceil
 
 """
 Returns the Euclidean distance.
@@ -41,7 +42,7 @@ def topology_parser(path):
       if not match:
         print("line wrongly formatted:\n\t", line)
         exit()
-    
+
       vertex_name = match.group(1)
       x, y = int(match.group(2)), int(match.group(3))
 
@@ -65,20 +66,20 @@ def topology_parser(path):
       if not match:
         print("line wrongly formatted:\n\t", line)
         exit()
-    
+
       start, end = match.group(1), match.group(2)
       forward, backward = int(match.group(3)), int(match.group(4))
 
       if (start,end) in edges or (end,start) in edges:
         print(start,end, "is already an existing pair")
         exit()
-      
+
       # Compute information about the edges.
       # Note that we don't store an edge if it contains no lanes (meaning that the opposite direction is a one-way).
       l = dist(vertices[start]["pos"], vertices[end]["pos"])
       if forward > 0:
         vmax_f = get_vmax(forward)
-        cells_f = int(l/vmax_f)
+        cells_f = ceil(l/(vmax_f*1000/60)) #This is because we want the speed in m/min
 
         edges[(start,end)] = {
           "lanes": forward,
@@ -90,7 +91,7 @@ def topology_parser(path):
 
       if backward > 0:
         vmax_b = get_vmax(backward)
-        cells_b = int(l/vmax_b)
+        cells_b = ceil(l/(vmax_b*1000/60)) #This is because we want the speed in m/min
 
         edges[(end,start)] = {
           "lanes": backward,

@@ -28,7 +28,7 @@ class Car:
 
   def get_total_delay(self):
     return self.total_delay
-  
+
   def set_curr_infra(self, infra):
     self.curr_infra = infra
 
@@ -62,6 +62,35 @@ class Car:
   @staticmethod
   def generate_case1_car(env, links, intersections):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
+    return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
+
+  """
+  Factory of cars following case 1 (only long-term stigmergy).
+  Case 1 cars also use `run_blind_shortest`, the difference from case 0 (blind-shortest) is that
+  the path computed at first uses long-term stigmergy rather than simply the default weight of each links.
+  That change can be seen in the extra parameter of `network.shortest_path`.
+  """
+  @staticmethod
+  def generate_nyc_car(env, links, intersections):
+    av_v_st = 7 #Ratio of traffic on avenues vs. streets, based on ratios from NYC open data
+    edge_wtg = 10 #ratio of cars originating on the edges of the grid vs. center
+    #Create list with orgins weighted by more likely end points
+    origin_intersections = list(intersections) + \
+            ['v1_1','v2_1','v4_1','v6_1','v1_16','v3_16','v5_16','v7_16'] * edge_wtg * av_v_st \
+            + ['v1_3','v1_5','v1_7','v1_9','v1_11','v1_13','v1_15'] * edge_wtg \
+            + ['v7_2','v7_4','v7_6','v7_8','v7_10','v7_12','v7_14'] * edge_wtg
+    dest_intersections_S = list(intersections) + ['v1_1','v3_1','v5_1','v7_1'] \
+            * edge_wtg * av_v_st + ['v1_2','v1_4','v1_6','v1_8','v7_1','v7_3', \
+            'v7_5','v7_7',]* edge_wtg
+    dest_intersections_N = list(intersections) + ['v1_16','v2_16','v4_16','v6_16'] \
+            * edge_wtg * av_v_st + ['v1_10','v1_12','v1_14','v1_16','v7_9','v7_11', \
+            'v7_13','v7_15']* edge_wtg
+    origin_name = np.random.choice(origin_intersections, 1)[0]
+    is_south = int(origin_name[origin_name.find('_')+1:]) < 9 #determines if origin is in the southern half of grid
+    if(is_south): destination_name = np.random.choice(dest_intersections_N, 1)[0] #more heavily weight northern intersections for southern origins
+    else: destination_name = np.random.choice(dest_intersections_S, 1)[0] #more heavily weight southern intersections for northern origins
     origin, destination = intersections[origin_name], intersections[destination_name]
     links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
     return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
@@ -226,7 +255,7 @@ class Car:
     print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
     print("Its path will be (in reversed order):", path, "\n")
     t = 0
-    
+
     # update intentions in next 10 mins (stigmergy caches)
     self.__update_link_intentions(path)
 
@@ -240,7 +269,7 @@ class Car:
       t += delay
       link_delay += delay
       print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
-      
+
       # keep moving on the link
       while True:
         # now we have access to the cell
@@ -253,7 +282,7 @@ class Car:
           allocated = allocate_anticip(self, ongoing_link)
 
           path = update_path(ongoing_link.get_out_intersection(), allocated)
-          
+
           # update intentions in next 10 mins (stigmergy caches)
           self.__update_link_intentions(path)
 
@@ -307,7 +336,7 @@ class Car:
 
       link_delay += yield from cell_req # wait to have access to the cell
       print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
-      
+
       # keep moving on the link
       while True:
         # now we have access to the cell
