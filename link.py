@@ -21,20 +21,28 @@ Every cell is represented as a Simpy resource with 1-capacity (so there's only o
 """
 class Link:
   
-  def __init__(self, env, cells, out_intersec_cells, edge, cache):
+  def __init__(self, env, cells, out_intersec_cells, edge, cache, monitor):
     self.cells = cells
     self.out_intersec_cells = out_intersec_cells
     self.cache = cache # holds stigmergy info for the lane
+    self.monitor = monitor
     self.env = env
     self.data = edge
     self.out_intersection = None # Nil, until set by the setter (Intersections are created after Links)
+    self.in_intersection = None # Nil, until set by the setter (Intersections are created after Links)
     self.num_cars = 0 # how many cars on the link currently
 
   def set_out_intersection(self, intersection):
     self.out_intersection = intersection
 
+  def set_in_intersection(self, intersection):
+    self.in_intersection = intersection
+
   def get_out_intersection(self):
     return self.out_intersection
+
+  def get_in_intersection(self):
+    return self.in_intersection
 
   def get_cache(self):
     return self.cache
@@ -44,6 +52,26 @@ class Link:
 
   def get_num_cars(self):
     return self.num_cars
+
+  def register_to_monitor(self):
+    self.monitor.register_link(self)
+
+  # TODO: maybe more processing (update link stats?)
+  def ping_monitor_car_moving(self, car_id, data):
+    self.monitor.update_car_moving(car_id, data)
+
+  # TODO: maybe more processing (update link stats?)
+  def ping_monitor_car_stopped(self, car_id):
+    self.monitor.update_car_stopped(car_id)
+
+  def register_cells(self):
+    for i in range(len(self.cells)):
+      lane = self.cells[i]
+      N = len(lane)
+      self.out_intersec_cells[i].register_link(self, i, N)
+
+      for j in range(N):
+        self.cells[i][j].register_link(self, i, j)
 
   # Use this method to update the number of cars on the current link
   # "1" to increment, "-1" to decrement

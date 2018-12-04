@@ -6,6 +6,7 @@ from cache import Cache
 from traffic import Traffic
 from intersection import Intersection
 from resource import Resource
+from monitor import Monitor
 import commandline
 
 """
@@ -42,7 +43,8 @@ args = commandline.parse()
 
 N, E = topo.topology_parser(args["network"])
 
-env = sim.RealtimeEnvironment()
+env = sim.Environment()
+monitor = Monitor(env)
 links = {} # holds references to the links of the road network
 intersections = {} # holds references to the intersections of the road network
 for trajectory in E:
@@ -51,7 +53,9 @@ for trajectory in E:
 
   stigmery_cache = Cache(env, edge['cells'])
   env.process(stigmery_cache.update_stigmery()) # define a process for the stigmergy caches so that they update over time
-  links[trajectory] = Link(env, road_cells, out_intersec_cells, edge, stigmery_cache)
+  links[trajectory] = Link(env, road_cells, out_intersec_cells, edge, stigmery_cache, monitor)
+  links[trajectory].register_to_monitor()
+  links[trajectory].register_cells()
   N[trajectory[0]]["out_links"].append(links[trajectory]) 
   N[trajectory[1]]["in_links"].append(links[trajectory])
 
@@ -60,15 +64,23 @@ for intersection_name in N:
   visible_links = get_visible_links_within_area(N, links, intersection, args["range"])
 
   intersections[intersection_name] = Intersection(env, intersection_name, intersection["out_links"], visible_links, intersection["pos"])
-
+  monitor.register_intersection(intersections[intersection_name])
+  
   # update links with newly created intersection
   for in_link in intersection["in_links"]:
     in_link.set_out_intersection(intersections[intersection_name])
 
+  for out_link in intersection["out_links"]:
+    out_link.set_in_intersection(intersections[intersection_name])
+
 # Generate cars using a specific traffic pattern. These patterns can be found in `traffic.py`.
-traffic = Traffic(env, intersections, links)
+traffic = Traffic(env, intersections, links, monitor)
 cars_proc = env.process(traffic.get_traffic_strategy(args["strategy"], args["param"]))
+
+env.process(monitor.draw_network())
 
 # run the Simpy environment
 until = args["until"] if args["until"] else np.inf
 env.run(until=env.any_of([cars_proc, env.timeout(until)]))
+
+print("\n\n\n", monitor.get_cars())

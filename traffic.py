@@ -5,10 +5,11 @@ from car import Car
 Represents different traffic strategies.
 """
 class Traffic:
-  def __init__(self, env, intersections, links):
+  def __init__(self, env, intersections, links, monitor):
     self.env = env
     self.intersections = intersections
     self.links = links
+    self.monitor = monitor
     self.strategies = {
       "basic": self.run_basic,
       "blind-shortest": self.run_blind_shortest,
@@ -57,12 +58,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case5_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case5_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -81,12 +82,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case4_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case4_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -104,12 +105,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case3_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case3_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
 
     yield self.env.timeout(20)
     
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case3_car(self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case3_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -125,12 +126,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case2_car(self.env, self.links, self.intersections, omega)))
+      procs.append(self.env.process(Car.generate_case2_car(self.monitor, self.env, self.links, self.intersections, omega)))
 
     yield self.env.timeout(20)
     
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case2_car(self.env, self.links, self.intersections, omega)))
+      procs.append(self.env.process(Car.generate_case2_car(self.monitor, self.env, self.links, self.intersections, omega)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -145,7 +146,7 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case1_car(self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_case1_car(self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -160,7 +161,7 @@ class Traffic:
     
     for _ in range(num):
       yield self.env.timeout(1)
-      procs.append(self.env.process(Car.generate_blind_shortest_car(self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_blind_shortest_car(self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -175,6 +176,6 @@ class Traffic:
 
     for _ in range(num):
       yield self.env.timeout(1)
-      procs.append(self.env.process(Car.generate_basic_car(self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_basic_car(self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
