@@ -30,7 +30,9 @@ def parse():
   parser.add_argument('--alpha', type=non_negative_float, default=0.48, help="Specify the alpha parameter in the anticipatory heuristic")
   parser.add_argument('--beta', type=probability_float, default=2.48, help="Specify the beta parameter in the anticipatory heuristic")
   parser.add_argument('--perc', type=probability_float, default=0.5, help="Specify the congestion criteria (percent allocated) in anticipatory stigmergy with allocation")
-
+  parser.add_argument('--no-draw', action="store_false", help="Specify not to draw the state of the network at each time step")
+  parser.add_argument('-v', action="store_true", help="Verbose (allow print)")
+  parser.add_argument('--output-file', type=str, default="output.json", help="Specify the file name of the JSON output stats")
 
   args = vars(parser.parse_args())
 
@@ -39,11 +41,14 @@ def parse():
     "network": "networks/" + args["network"],
     "until": args["until"],
     "range": args["range"],
+    "draw": args["no_draw"],
+    "output_file": args["output_file"],
     "param": {
       "num": args["num"],
       "omega": args["omega"],
       "alpha": args["alpha"],
       "beta": args["beta"],
-      "perc": args["perc"]
+      "perc": args["perc"],
+      "verbose": args["v"],
     }
   }

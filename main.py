@@ -77,10 +77,11 @@ for intersection_name in N:
 traffic = Traffic(env, intersections, links, monitor)
 cars_proc = env.process(traffic.get_traffic_strategy(args["strategy"], args["param"]))
 
-env.process(monitor.draw_network())
+if args["draw"]:
+  env.process(monitor.draw_network())
 
 # run the Simpy environment
 until = args["until"] if args["until"] else np.inf
 env.run(until=env.any_of([cars_proc, env.timeout(until)]))
 
-print("\n\n\n", monitor.get_cars())
+monitor.output_stats(args["output_file"])

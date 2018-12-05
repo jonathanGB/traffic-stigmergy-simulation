@@ -60,12 +60,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case5_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case5_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case5_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -84,12 +84,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case4_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case4_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      procs.append(self.env.process(Car.generate_case4_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -107,12 +107,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case3_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case3_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case3_car(self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
+      procs.append(self.env.process(Car.generate_case3_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -128,12 +128,12 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case2_car(self.monitor, self.env, self.links, self.intersections, omega)))
+      procs.append(self.env.process(Car.generate_case2_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega)))
 
     yield self.env.timeout(20)
 
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case2_car(self.monitor, self.env, self.links, self.intersections, omega)))
+      procs.append(self.env.process(Car.generate_case2_car(param["verbose"], self.monitor, self.env, self.links, self.intersections, omega)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -148,7 +148,7 @@ class Traffic:
     # long-term stigmergy is updated every day). Using RealTimeEnvironment is going to be very long,
     # we should use an environment (without real-time) so that iterations run as fast as possible.
     for _ in range(num):
-      procs.append(self.env.process(Car.generate_case1_car(self.monitor, self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_case1_car(param["verbose"], self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -163,7 +163,7 @@ class Traffic:
 
     for _ in range(num):
       yield self.env.timeout(1)
-      procs.append(self.env.process(Car.generate_blind_shortest_car(self.monitor, self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_blind_shortest_car(param["verbose"], self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -178,7 +178,7 @@ class Traffic:
 
     for _ in range(num):
       yield self.env.timeout(1)
-      procs.append(self.env.process(Car.generate_basic_car(self.monitor, self.env, self.links, self.intersections)))
+      procs.append(self.env.process(Car.generate_basic_car(param["verbose"], self.monitor, self.env, self.links, self.intersections)))
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
@@ -189,15 +189,21 @@ class Traffic:
     """
     print("start nyc weekday basic traffic")
     procs = []
+    num = param["num"] if param["num"] else 5
+    omega = param["omega"]
+    alpha = param["alpha"]
+    beta = param["beta"]
+    perc = param["perc"]
     hourly_traffic = [0.46,	0.29, 0.19,	0.16, 0.16,	0.27, 0.58, 0.94, 1.00,	0.93,\
                 0.85, 0.84,	0.84, 0.83,	0.86, 0.88,	0.86, 0.87,	0.87, 0.88,	0.82,\
                 0.78, 0.76, 0.71] #Traffic as % of max, hourly from 12-1am to 11pm-12am
 
-    for i in range(1440):
-      hour = i // 60 #Hour on 24-hour clock
-      n_cars = ceil(5 * hourly_traffic[hour]) #number of cars per minute
+    for i in range(1440 * 5):
+      day = i // 1440
+      hour = (i // 60) % 24 #Hour on 24-hour clock
+      n_cars = ceil(num * hourly_traffic[hour]) #number of cars per minute
       for _ in range(n_cars): #Loop to generate multiple cars
-        procs.append(self.env.process(Car.generate_nyc_car(self.env, self.links, self.intersections)))
+        procs.append(self.env.process(Car.generate_nyc_car(day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
 
       yield self.env.timeout(1)
 

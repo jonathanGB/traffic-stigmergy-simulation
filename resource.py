@@ -46,7 +46,9 @@ class Resource:
         self.link.ping_monitor_car_moving(token, (1, delay, self.pos))
         return delay
 
-      self.link.ping_monitor_car_stopped(token)
+      if delay == 0:
+        self.link.ping_monitor_car_stopped(token)
+        
       yield self.env.timeout(1)
       delay += 1
 

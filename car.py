@@ -16,13 +16,14 @@ Represents a car as a Simpy process.
 class Car:
   id_generator = generate_id()
 
-  def __init__(self, env, origin, destination, links, monitor):
+  def __init__(self, env, origin, destination, links, monitor, verbose):
     self.env = env
     self.origin = origin
     self.destination = destination
     self.links = links
     self.id = next(self.id_generator)
     self.monitor = monitor
+    self.verbose = verbose
     self.cell = None # reference to the cell's resource
     self.curr_infra = origin # reference to the link OR intersection on which the car currently is
     self.total_delay = 0 # incurred delay since the beginning
@@ -49,19 +50,19 @@ class Car:
   Factory of "basic" cars.
   """
   @staticmethod
-  def generate_basic_car(monitor, env, links, intersections):
+  def generate_basic_car(verbose, monitor, env, links, intersections):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
-    return Car(env, intersections[origin_name], intersections[destination_name], links, monitor).run_basic()
+    return Car(env, intersections[origin_name], intersections[destination_name], links, monitor, verbose).run_basic()
 
   """
   Factory of cars following the shortest path (case 0: not information)
   """
   @staticmethod
-  def generate_blind_shortest_car(monitor, env, links, intersections):
+  def generate_blind_shortest_car(verbose, monitor, env, links, intersections):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
     links_to_visit = network.shortest_path(origin, destination, links, intersections)
-    return Car(env, origin, destination, links, monitor).run_blind_shortest(links_to_visit)
+    return Car(env, origin, destination, links, monitor, verbose).run_blind_shortest(links_to_visit)
 
   """
   Factory of cars following case 1 (only long-term stigmergy).
@@ -70,11 +71,11 @@ class Car:
   That change can be seen in the extra parameter of `network.shortest_path`.
   """
   @staticmethod
-  def generate_case1_car(monitor, env, links, intersections):
+  def generate_case1_car(verbose, monitor, env, links, intersections):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
     links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
-    return Car(env, origin, destination, links, monitor).run_blind_shortest(links_to_visit)
+    return Car(env, origin, destination, links, monitor, verbose).run_blind_shortest(links_to_visit)
 
   """
   Factory of cars following case 1 (only long-term stigmergy).
@@ -83,7 +84,7 @@ class Car:
   That change can be seen in the extra parameter of `network.shortest_path`.
   """
   @staticmethod
-  def generate_nyc_car(env, links, intersections):
+  def generate_nyc_car(day, verbose, monitor, env, links, intersections, omega, alpha, beta, perc):
     av_v_st = 7 #Ratio of traffic on avenues vs. streets, based on ratios from NYC open data
     edge_wtg = 10 #ratio of cars originating on the edges of the grid vs. center
     #Create list with orgins weighted by more likely end points
@@ -99,11 +100,24 @@ class Car:
             'v7_13','v7_15']* edge_wtg
     origin_name = np.random.choice(origin_intersections, 1)[0]
     is_south = int(origin_name[origin_name.find('_')+1:]) < 9 #determines if origin is in the southern half of grid
-    if(is_south): destination_name = np.random.choice(dest_intersections_N, 1)[0] #more heavily weight northern intersections for southern origins
-    else: destination_name = np.random.choice(dest_intersections_S, 1)[0] #more heavily weight southern intersections for northern origins
+    
+    destination_name = origin_name
+    while destination_name == origin_name:
+      if(is_south): 
+        destination_name = np.random.choice(dest_intersections_N, 1)[0] #more heavily weight northern intersections for southern origins
+      else:
+        destination_name = np.random.choice(dest_intersections_S, 1)[0] #more heavily weight southern intersections for northern origins
+    
     origin, destination = intersections[origin_name], intersections[destination_name]
-    links_to_visit = network.shortest_path(origin, destination, links, intersections, network.case1_weight_query)
-    return Car(env, origin, destination, links).run_blind_shortest(links_to_visit)
+    #links_to_visit = network.shortest_path(origin, destination, links, intersections)
+
+    update_path = Car.__update_path_case2(destination, links, intersections, omega)
+    links_to_visit = update_path(origin, False)
+
+    car = Car(env, origin, destination, links, monitor, verbose)
+    car.monitor.register_car(car, day)
+    # return car.run_blind_shortest(links_to_visit)
+    return car.run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_never())
 
   """
   Allocation rules
@@ -130,7 +144,7 @@ class Car:
     return allocate_anticip
 
   @staticmethod
-  def __allocate_anticip_by_distance(perc):
+  def __allocate_anticip_by_distance(perc, verbose):
     def allocate_anticip(car, link):
       own_distance = dist(car.curr_infra.get_pos(), car.destination.get_pos())
       shorter = 0
@@ -147,14 +161,16 @@ class Car:
             longer += 1
 
       anticip = shorter > perc * (longer + shorter + 1)
-      print(car, "to", car.curr_infra, ": shorter =", shorter, ", longer =", longer, ", anticip =", anticip)
+
+      if verbose:
+        print(car, "to", car.curr_infra, ": shorter =", shorter, ", longer =", longer, ", anticip =", anticip)
 
       return anticip
 
     return allocate_anticip
 
   @staticmethod
-  def __allocate_anticip_by_delay(perc):
+  def __allocate_anticip_by_delay(perc, verbose):
     def allocate_anticip(car, link):
       own_delay = car.get_total_delay()
       less_delay = 0
@@ -170,7 +186,8 @@ class Car:
             more_delay += 1
 
       anticip = less_delay > perc * (more_delay + less_delay + 1)
-      print(car, "to", car.curr_infra, ": less_delay =", less_delay, ", more_delay =", more_delay, ", anticip =", anticip)
+      if verbose:
+        print(car, "to", car.curr_infra, ": less_delay =", less_delay, ", more_delay =", more_delay, ", anticip =", anticip)
 
       return anticip
 
@@ -185,12 +202,12 @@ class Car:
   simply by changing that update function.
   """
   @staticmethod
-  def generate_case2_car(monitor, env, links, intersections, omega):
+  def generate_case2_car(verbose, monitor, env, links, intersections, omega):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
     links_to_visit =  Car.__update_path_case2(destination, links, intersections, omega)(origin, False)
 
-    return Car(env, origin, destination, links, monitor).run_dynamic(links_to_visit,
+    return Car(env, origin, destination, links, monitor, verbose).run_dynamic(links_to_visit,
                                                             Car.__update_path_case2(destination, links, intersections, omega),
                                                             Car.__allocate_anticip_never())
 
@@ -202,34 +219,34 @@ class Car:
     return update_path
 
   @staticmethod
-  def generate_case3_car(monitor, env, links, intersections, omega, alpha, beta):
+  def generate_case3_car(verbose, monitor, env, links, intersections, omega, alpha, beta):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
     update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
     links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links, monitor).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_random())
+    return Car(env, origin, destination, links, monitor, verbose).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_random())
 
   @staticmethod
-  def generate_case4_car(monitor, env, links, intersections, omega, alpha, beta, perc):
+  def generate_case4_car(verbose, monitor, env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
     update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
     links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links, monitor).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_distance(perc))
+    return Car(env, origin, destination, links, monitor, verbose).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_distance(perc, verbose))
 
   @staticmethod
-  def generate_case5_car(monitor, env, links, intersections, omega, alpha, beta, perc):
+  def generate_case5_car(verbose, monitor, env, links, intersections, omega, alpha, beta, perc):
     origin_name, destination_name = np.random.choice(list(intersections), 2, replace=False)
     origin, destination = intersections[origin_name], intersections[destination_name]
 
     update_path = Car.__update_path_allocated_case(destination, links, intersections, omega, alpha, beta)
     links_to_visit = update_path(origin, False)
 
-    return Car(env, origin, destination, links, monitor).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_delay(perc))
+    return Car(env, origin, destination, links, monitor, verbose).run_dynamic(links_to_visit, update_path, Car.__allocate_anticip_by_delay(perc, verbose))
 
   @staticmethod
   def __update_path_allocated_case(destination, links, intersections, omega, alpha, beta):
@@ -262,9 +279,9 @@ class Car:
         break
 
   def run_dynamic(self, path, update_path, allocate_anticip):
-    self.monitor.register_car(self)
-    print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
-    print("Its path will be (in reversed order):", path, "\n")
+    if self.verbose:
+      print(self, "is running the dynamic strategy from", self.origin, "to", self.destination)
+      print("Its path will be (in reversed order):", path, "\n")
     intersec_cell = None
     t = 0
 
@@ -283,7 +300,8 @@ class Car:
 
       t += delay
       link_delay += delay
-      print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
+      if self.verbose:
+        print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
 
       # keep moving on the link
       while True:
@@ -331,7 +349,8 @@ class Car:
       # car is now at a new intersection
       self.total_delay += link_delay # should be useful for case 5
       self.curr_infra = ongoing_link.access_intersection()
-      print(self, "is at intersection", self.curr_infra)
+      if self.verbose:
+        print(self, "is at intersection", self.curr_infra)
     
     if intersec_cell:
       intersec_cell.release(self.id)
@@ -345,11 +364,11 @@ class Car:
   from the path list computed via Dijkstra (rather than a random walk).
   """
   def run_blind_shortest(self, path):
-    self.monitor.register_car(self)
-    print(self, "is running the blind-shortest strategy from", self.origin, "to", self.destination)
-    print("Its path will be (in reversed order):", path, "\n")
+    if self.verbose:
+      print(self, "is running the blind-shortest strategy from", self.origin, "to", self.destination)
+      print("Its path will be (in reversed order):", path, "\n")
+    
     intersec_cell = None
-
 
     while len(path) > 0:
       ongoing_link = path.pop()
@@ -360,7 +379,8 @@ class Car:
       link_delay += yield from cell_req # wait to have access to the cell
       if intersec_cell:
         intersec_cell.release(self.id)
-      print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
+      if self.verbose:
+        print(self, "has accessed the link toward", ongoing_link.get_out_intersection(), "(delay:", link_delay, ") [", self.destination, "]")
 
       # keep moving on the link
       while True:
@@ -391,7 +411,8 @@ class Car:
 
       # car is now at a new intersection
       self.curr_infra = ongoing_link.access_intersection()
-      print(self, "is at intersection", self.curr_infra)
+      if self.verbose:
+        print(self, "is at intersection", self.curr_infra)
 
     if intersec_cell:
       intersec_cell.release(self.id)
@@ -403,20 +424,22 @@ class Car:
   Run the basic Car process (where cars pretty much go randomly until they reach their destination)
   """
   def run_basic(self):
-    self.monitor.register_car(self)
-    print(self, "is running the basic strategy from", self.origin, "to", self.destination)
+    if self.verbose:
+      print(self, "is running the basic strategy from", self.origin, "to", self.destination)
     intersec_cell = None
 
 
     while True:
       # check if dead-end: break if so
       if self.curr_infra.is_deadend():
-        print(self, "arrived at a deadend!\n")
+        if self.verbose:
+          print(self, "arrived at a deadend!\n")
         break
 
       # check if destination: break if so
       if self.curr_infra == self.destination:
-        print(self, "has arrived at its destination!\n")
+        if self.verbose:
+          print(self, "has arrived at its destination!\n")
         break
 
       # otherwise: request entry to a random outgoing link
@@ -426,12 +449,14 @@ class Car:
       yield from cell_req # wait to have access to the cell
       if intersec_cell:
         intersec_cell.release(self.id)
-      print(self, "has accessed the link toward intersection", ongoing_link.get_out_intersection(), "(", self.destination, ")")
+      if self.verbose:
+        print(self, "has accessed the link toward intersection", ongoing_link.get_out_intersection(), "(", self.destination, ")")
 
       # keep moving on the link
       while True:
         # now we have access to the cell
-        print(self, "moved to cell", pos)
+        if self.verbose:
+          print(self, "moved to cell", pos)
         yield self.env.timeout(1)
 
         if ongoing_link.is_next_to_intersection(pos):
@@ -451,7 +476,8 @@ class Car:
 
       # car is now at a new intersection
       self.curr_infra = ongoing_link.access_intersection()
-      print(self, "is at intersection", self.curr_infra)
+      if self.verbose:
+        print(self, "is at intersection", self.curr_infra)
       yield self.env.timeout(1)
 
     if intersec_cell:

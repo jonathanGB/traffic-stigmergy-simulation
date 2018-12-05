@@ -1,6 +1,7 @@
 from enum import Enum
 import matplotlib.pyplot as plt
 import numpy as np
+from json import dump
 
 class CarStatus(Enum):
   CREATED = "created"
@@ -24,8 +25,9 @@ class Monitor:
   def get_cars(self):
     return self.cars
 
-  def register_car(self, car):
+  def register_car(self, car, day=0):
     self.cars[car.get_id()] = {
+      "day": day,
       "origin": car.get_origin(),
       "destination": car.get_destination(),
       "travel_time": 0,
@@ -67,7 +69,7 @@ class Monitor:
     return np.array([deltay, -deltax]) / curr_norm * final_norm
 
   def get_car_position(self, car):
-    offset = 9 # arbitrary offset from the line
+    offset = 100 # arbitrary offset from the line
     link, pos = car
     n = link.get_weight()
     start_intersec, end_intersec = link.get_in_intersection(), link.get_out_intersection()
@@ -93,6 +95,7 @@ class Monitor:
     visited_nodes = set()
 
     plt.axis(area)
+    plt.figure(figsize=(20,20))
     plt.gca().axes.get_yaxis().set_visible(False)
     plt.gca().axes.get_xaxis().set_visible(False)
     
@@ -100,7 +103,7 @@ class Monitor:
       visited_nodes.add(intersection)
       x, y = intersection.get_pos()
 
-      plt.scatter(x, y, marker="*", s=60, zorder=2, color="k")
+      plt.scatter(x, y, marker="*", s=60, zorder=2, color="w")
 
       for out in intersection.get_links():
         if out not in visited_nodes:
@@ -120,11 +123,11 @@ class Monitor:
       car_colour = self.get_car_colour(car_status)
       car_x, car_y = self.get_car_position(car['pos'])
 
-      plt.scatter(car_x, car_y, marker='o', color=car_colour)
+      plt.scatter(car_x, car_y, marker='o', color=car_colour, s=50)
       plt.annotate(car_id, (car_x, car_y))
 
     plt.savefig("output/{:05d}.png".format(ctr))
-    plt.clf()
+    plt.close()
 
   def get_topology_area(self):
     n = len(self.intersections)
@@ -133,18 +136,42 @@ class Monitor:
     for i, intersection in enumerate(self.intersections):
       xs[i], ys[i] = intersection.get_pos()
 
-    min_x = xs.min() - 50
-    max_x = xs.max() + 50
-    min_y = ys.min() - 50
-    max_y = ys.max() + 50
+    min_x = xs.min() - 100
+    max_x = xs.max() + 100
+    min_y = ys.min() - 100
+    max_y = ys.max() + 100
 
     return min_x, max_x, min_y, max_y
 
   def draw_network(self):
     area = self.get_topology_area()
+
     ctr = 0  
     while True:
       self.draw_topology(ctr, area)
       ctr += 1
 
       yield self.env.timeout(1)
+
+  def output_stats(self, file_name):
+    output = {}
+
+    for car_id in self.cars:
+      car = self.cars[car_id]
+      day = car['day']
+
+      if day not in output:
+        output[day] = {
+          "cars": {
+            "delay_times": [],
+            "travel_times": [],
+            "prop_delays": [],
+          }
+        }
+
+      output[day]['cars']['delay_times'].append(car['delay_time'])
+      output[day]['cars']['travel_times'].append(car['travel_time'])
+      output[day]['cars']['prop_delays'].append(round(car['delay_time'] / car['travel_time'], 3))
+
+    with open('stats/{}'.format(file_name), 'w') as f:
+      dump(output, f)
