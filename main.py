@@ -93,8 +93,8 @@ def run(args):
 args = commandline.parse()
 
 if args["param"]["strategy"] == "all":
-  args["no_draw"] = True # in multiprocessing, we don't draw or print (we want this to be as fast as possible)
-  args["v"] = False
+  args["draw"] = False # in multiprocessing, we don't draw or print (we want this to be as fast as possible)
+  args["param"]["verbose"] = False
 
   strategies = ["case0", "case1", "case2", "case3", "case4", "case5"]
   procs = []
