@@ -153,7 +153,7 @@ class Monitor:
 
       yield self.env.timeout(1)
 
-  def output_stats(self, file_name):
+  def output_stats(self, file_name="output.json"):
     output = {}
 
     for car_id in self.cars:

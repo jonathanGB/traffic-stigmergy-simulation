@@ -9,6 +9,7 @@ for file in os.listdir("stats"):
     if file.endswith(".json"):
       json_filenames.append(file)
 
+json_filenames.sort(reverse=True)
 # read all JSON data
 n = len(json_filenames)
 data = []
@@ -58,6 +59,6 @@ for day in range(5):
 
   plt.gca().set_yticks(ind)
   plt.gca().set_yticklabels(map(lambda filename: filename.split(".json")[0], json_filenames))
-  plt.xlim(200000, 270000)
+  plt.xlim(150000, 270000)
 
 plt.show()
