@@ -32,6 +32,8 @@ for category in ["prop_delays", "delay_times"]:
       plt.legend()
       ctr += 1
 
+  plt.savefig(category + ".png")
+
 # draw horizontal bar charts for total travel times
 plt.figure(figsize=(30,20)).suptitle("Total time", fontsize=16)
 width = 0.35
@@ -61,4 +63,4 @@ for day in range(5):
   plt.gca().set_yticklabels(map(lambda filename: filename.split(".json")[0], json_filenames))
   plt.xlim(150000, 270000)
 
-plt.show()
+plt.savefig("total_travel.png")

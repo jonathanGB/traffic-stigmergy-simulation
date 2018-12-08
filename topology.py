@@ -62,24 +62,39 @@ def topology_parser(path):
     # These define the edges forming the network.
     for line in topo_iter:
       # Regex based on the rules in `topology.md`
-      match = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+)', line)
-      if not match:
+      match4 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+)', line)
+      match6 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+):\s*(\d+):\s*(\d+)', line)
+      if not (match4 or match6):
         print("line wrongly formatted:\n\t", line)
         exit()
 
-      start, end = match.group(1), match.group(2)
-      forward, backward = int(match.group(3)), int(match.group(4))
+      start, end = "", ""
+      forward, backward, cells_f, cells_b = 0, 0, 0, 0
+
+      if match4:
+        start, end = match4.group(1), match4.group(2)
+        forward, backward = int(match4.group(3)), int(match4.group(4))
+
+      if match6:
+        start, end = match6.group(1), match6.group(2)
+        forward, backward = int(match6.group(3)), int(match6.group(4))
+        cells_f, cells_b = int(match6.group(5)), int(match6.group(6))
 
       if (start,end) in edges or (end,start) in edges:
-        print(start,end, "is already an existing pair")
-        exit()
+          print(start,end, "is already an existing pair")
+          exit()
 
       # Compute information about the edges.
       # Note that we don't store an edge if it contains no lanes (meaning that the opposite direction is a one-way).
       l = dist(vertices[start]["pos"], vertices[end]["pos"])
+
       if forward > 0:
-        vmax_f = get_vmax(forward)
-        cells_f = ceil(l/(vmax_f*1000/60)) #This is because we want the speed in m/min
+        vmax_f = 0
+        if cells_f > 0:
+          vmax_f = l * 60 / (cells_f * 1000)
+        else:
+          vmax_f = get_vmax(forward)
+          cells_f = ceil(l/(vmax_f*1000/60)) #This is because we want the speed in m/min
 
         edges[(start,end)] = {
           "lanes": forward,
@@ -90,8 +105,13 @@ def topology_parser(path):
         }
 
       if backward > 0:
-        vmax_b = get_vmax(backward)
-        cells_b = ceil(l/(vmax_b*1000/60)) #This is because we want the speed in m/min
+        vmax_b = 0
+
+        if cells_b > 0:
+          vmax_b = l * 60 / (cells_b * 1000)
+        else:
+          vmax_b = get_vmax(backward)
+          cells_b = ceil(l/(vmax_b*1000/60)) #This is because we want the speed in m/min
 
         edges[(end,start)] = {
           "lanes": backward,
