@@ -64,21 +64,21 @@ def topology_parser(path):
       # Regex based on the rules in `topology.md`
       match4 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+)', line)
       match6 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+):\s*(\d+):\s*(\d+)', line)
-      if not (match4 or match6):
+      match7 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+):\s*(\d+):\s*(\d+):\s*(\d+)', line)
+      if not (match4):
         print("line wrongly formatted:\n\t", line)
         exit()
 
-      start, end = "", ""
-      forward, backward, cells_f, cells_b = 0, 0, 0, 0
+      start, end = match4.group(1), match4.group(2)
+      forward, backward = int(match4.group(3)), int(match4.group(4))
 
-      if match4:
-        start, end = match4.group(1), match4.group(2)
-        forward, backward = int(match4.group(3)), int(match4.group(4))
-
+      cells_f, cells_b = 0, 0
       if match6:
-        start, end = match6.group(1), match6.group(2)
-        forward, backward = int(match6.group(3)), int(match6.group(4))
         cells_f, cells_b = int(match6.group(5)), int(match6.group(6))
+
+      has_stigmergy = True
+      if match7:
+        has_stigmergy = (int(match7.group(7)) != 0)
 
       if (start,end) in edges or (end,start) in edges:
           print(start,end, "is already an existing pair")
@@ -101,7 +101,8 @@ def topology_parser(path):
           "l": l,
           "vmax": vmax_f,
           "cells": cells_f,
-          "cap": forward * cells_f
+          "cap": forward * cells_f,
+          "has_stigmergy": has_stigmergy
         }
 
       if backward > 0:
@@ -118,7 +119,8 @@ def topology_parser(path):
           "l": l,
           "vmax": vmax_b,
           "cells": cells_b,
-          "cap": backward * cells_b
+          "cap": backward * cells_b,
+          "has_stigmergy": has_stigmergy
         }
 
   return vertices, edges

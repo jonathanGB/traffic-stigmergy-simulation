@@ -54,7 +54,7 @@ def run(args):
 
     stigmery_cache = Cache(env, edge['cells'])
     env.process(stigmery_cache.update_stigmery()) # define a process for the stigmergy caches so that they update over time
-    links[trajectory] = Link(env, road_cells, out_intersec_cells, edge, stigmery_cache, monitor)
+    links[trajectory] = Link(env, road_cells, out_intersec_cells, edge, stigmery_cache, monitor, edge['has_stigmergy'])
     links[trajectory].register_to_monitor()
     links[trajectory].register_cells()
     N[trajectory[0]]["out_links"].append(links[trajectory]) 

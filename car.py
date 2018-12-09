@@ -77,6 +77,14 @@ class Car:
 
     return car.run_strategy(strategy, intersections, omega, alpha, beta, perc)
 
+  @staticmethod
+  def generate_car(strategy, origin_name, destination_name, day, verbose, monitor, env, links, intersections, omega, alpha, beta, perc):
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    car = Car(env, origin, destination, links, monitor, verbose)
+    car.monitor.register_car(car, day)
+
+    return car.run_strategy(strategy, intersections, omega, alpha, beta, perc)
+
   def run_strategy(self, strat, intersections, omega, alpha, beta, perc):
     if strat == "case0":
       links_to_visit = network.shortest_path(self.origin, self.destination, self.links, intersections)
@@ -123,6 +131,9 @@ class Car:
   @staticmethod
   def __allocate_anticip_random():
     def allocate_anticip(car, link):
+      if not link.has_stigmergy:
+        return True
+        
       return np.random.uniform() < 0.5
 
     return allocate_anticip
@@ -130,6 +141,9 @@ class Car:
   @staticmethod
   def __allocate_anticip_by_distance(perc, verbose):
     def allocate_anticip(car, link):
+      if not link.has_stigmergy:
+        return True
+
       own_distance = dist(car.curr_infra.get_pos(), car.destination.get_pos())
       shorter = 0
       longer = 0
@@ -156,6 +170,9 @@ class Car:
   @staticmethod
   def __allocate_anticip_by_delay(perc, verbose):
     def allocate_anticip(car, link):
+      if not link.has_stigmergy:
+        return True
+
       own_delay = car.get_total_delay()
       less_delay = 0
       more_delay = 0

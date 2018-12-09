@@ -21,7 +21,7 @@ Every cell is represented as a Simpy resource with 1-capacity (so there's only o
 """
 class Link:
   
-  def __init__(self, env, cells, out_intersec_cells, edge, cache, monitor):
+  def __init__(self, env, cells, out_intersec_cells, edge, cache, monitor, has_stigmergy):
     self.cells = cells
     self.out_intersec_cells = out_intersec_cells
     self.cache = cache # holds stigmergy info for the lane
@@ -31,6 +31,7 @@ class Link:
     self.out_intersection = None # Nil, until set by the setter (Intersections are created after Links)
     self.in_intersection = None # Nil, until set by the setter (Intersections are created after Links)
     self.num_cars = 0 # how many cars on the link currently
+    self.has_stigmergy = has_stigmergy # whether the link can access short-term stigmergy info
 
   def set_out_intersection(self, intersection):
     self.out_intersection = intersection
@@ -52,6 +53,9 @@ class Link:
 
   def get_num_cars(self):
     return self.num_cars
+
+  def get_has_stigmergy(self):
+    return self.has_stigmergy
 
   def register_to_monitor(self):
     self.monitor.register_link(self)

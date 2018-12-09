@@ -1,6 +1,7 @@
 from sys import exit
 from car import Car
 from math import ceil
+import numpy as np
 
 """
 Represents different traffic strategies.
@@ -14,6 +15,7 @@ class Traffic:
     self.traffics = {
       "nyc_weekday": self.run_nyc_weekday,
       "nyc_weekend": self.run_nyc_weekend,
+      "kanamori": self.run_kanamori
     }
 
   def get_traffic_strategy(self, name, param={}):
@@ -63,7 +65,6 @@ class Traffic:
 
     yield from self.__wait_for_all_procs_to_finish(procs)
 
-
   def run_nyc_weekend(self, param):
     print("start nyc weekend traffic")
     procs = []
@@ -73,17 +74,54 @@ class Traffic:
     beta = param["beta"]
     perc = param["perc"]
     strategy = param["strategy"]
-    hourly_traffic = [0.67, 0.53, 0.43, 0.35, 0.28, 0.20, 0.25, 0.36, 0.52,\
-            0.65, 0.74, 0.80, 0.84, 0.84, 0.83, 0.80, 0.80, 0.81, 0.84, 0.80,\
-            0.73, 0.68, 0.65, 0.61] #Traffic as % of max, hourly from 12-1am to 11pm-12am
+    hourly_traffic = [0.67, 0.53, 0.43, 0.35, 0.28, 0.20, 0.25, 0.36, 0.52, \
+                      0.65, 0.74, 0.80, 0.84, 0.84, 0.83, 0.80, 0.80, 0.81, 0.84, 0.80, \
+                      0.73, 0.68, 0.65, 0.61]  # Traffic as % of max, hourly from 12-1am to 11pm-12am
 
     for i in range(1440 * 5):
       day = i // 1440
-      hour = (i // 60) % 24 #Hour on 24-hour clock
-      n_cars = ceil(num * hourly_traffic[hour]) #number of cars per minute
-      for _ in range(n_cars): #Loop to generate multiple cars
-        procs.append(self.env.process(Car.generate_nyc_car(strategy, day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+      hour = (i // 60) % 24  # Hour on 24-hour clock
+      n_cars = ceil(num * hourly_traffic[hour])  # number of cars per minute
+      for _ in range(n_cars):  # Loop to generate multiple cars
+        procs.append(self.env.process(
+          Car.generate_nyc_car(strategy, day, param["verbose"], self.monitor, self.env, self.links, self.intersections,
+                               omega, alpha, beta, perc)))
 
+      yield self.env.timeout(1)
+
+    yield from self.__wait_for_all_procs_to_finish(procs)
+
+  def run_kanamori(self, param):
+    print("start kanamori traffic")
+    procs = []
+    num = param["num"] if param["num"] else 5
+    omega = param["omega"]
+    alpha = param["alpha"]
+    beta = param["beta"]
+    perc = param["perc"]
+    strategy = param["strategy"]
+    
+    for i in range(300):
+      day = i // 1440
+      hour = (i // 60) % 24 #Hour on 24-hour clock
+      minute = i % 1440
+
+      if minute < 100:
+        if np.random.uniform() < .25:
+          procs.append(self.env.process(Car.generate_car("case0", "v0", "v24", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+        else:
+          procs.append(self.env.process(Car.generate_car(strategy, "v0", "v24", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+        
+        if np.random.uniform() < .25:
+          procs.append(self.env.process(Car.generate_car("case0", "v2", "v22", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+        else:
+          procs.append(self.env.process(Car.generate_car(strategy, "v2", "v22", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+        
+        if np.random.uniform() < .25:
+          procs.append(self.env.process(Car.generate_car("case0", "v4", "v20", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+        else:
+          procs.append(self.env.process(Car.generate_car(strategy, "v4", "v20", day, param["verbose"], self.monitor, self.env, self.links, self.intersections, omega, alpha, beta, perc)))
+    
       yield self.env.timeout(1)
 
     yield from self.__wait_for_all_procs_to_finish(procs)
