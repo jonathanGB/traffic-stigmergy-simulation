@@ -101,7 +101,7 @@ class Traffic:
     perc = param["perc"]
     strategy = param["strategy"]
     
-    for i in range(300):
+    for i in range(100):
       day = i // 1440
       hour = (i // 60) % 24 #Hour on 24-hour clock
       minute = i % 1440
