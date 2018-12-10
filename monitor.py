@@ -169,9 +169,12 @@ class Monitor:
           }
         }
 
+      travel_time = car['travel_time']
+      if  travel_time < 1:
+        travel_time = 1
       output[day]['cars']['delay_times'].append(car['delay_time'])
       output[day]['cars']['travel_times'].append(car['travel_time'])
-      output[day]['cars']['prop_delays'].append(round(car['delay_time'] / car['travel_time'], 3))
+      output[day]['cars']['prop_delays'].append(round(car['delay_time'] / travel_time, 3))
 
     with open('stats/{}'.format(file_name), 'w') as f:
       dump(output, f)

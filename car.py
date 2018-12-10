@@ -63,14 +63,42 @@ class Car:
             'v7_13','v7_15']* edge_wtg
     origin_name = np.random.choice(origin_intersections, 1)[0]
     is_south = int(origin_name[origin_name.find('_')+1:]) < 9 #determines if origin is in the southern half of grid
-    
+
     destination_name = origin_name
     while destination_name == origin_name:
-      if is_south: 
+      if is_south:
         destination_name = np.random.choice(dest_intersections_N, 1)[0] #more heavily weight northern intersections for southern origins
       else:
         destination_name = np.random.choice(dest_intersections_S, 1)[0] #more heavily weight southern intersections for northern origins
-    
+
+    origin, destination = intersections[origin_name], intersections[destination_name]
+    car = Car(env, origin, destination, links, monitor, verbose)
+    car.monitor.register_car(car, day)
+
+    return car.run_strategy(strategy, intersections, omega, alpha, beta, perc)
+
+  @staticmethod
+  def generate_cambridge_car(strategy, day, verbose, monitor, env, links, intersections, omega, alpha, beta, perc):
+    av_v_st = 7 #Ratio of traffic on avenues vs. streets, based on ratios from NYC open data
+    edge_wtg = 10 #ratio of cars originating on the edges of the grid vs. center
+    #Create list with orgins weighted by more likely end points
+    origin_intersections = list(intersections) + ['River_Memorial','DeWolf_Memorial']*7 \
+                + ['River_Mass','Mass_Mt_Auburn']*5 + ['Western_Mass']*8 \
+                + ['River_Memorial']*8 + ['Mt_Auburn_DeWolf']*2 #increases odds of originating from busiest roads' intersections
+    origin_name = np.random.choice(origin_intersections, 1)[0]
+    if 'Memorial' in origin_name:
+        dest_intersections = list(intersections) + ['River_Memorial','DeWolf_Memorial']*80 #Increases likelihood of staying on same road if you started there
+    elif 'Mass' in origin_name:
+        dest_intersections = list(intersections) + ['River_Mass','Mass_Mt_Auburn']*80 #Increases likelihood of staying on same road if you started there
+    elif 'River' in origin_name:
+        dest_intersections = list(intersections) + ['River_Mass']*80 #Increases likelihood of staying on same road if you started there
+    elif 'Western' in origin_name:
+        dest_intersections = list(intersections) + ['Western_Memorial']*80 #Increases likelihood of staying on same road if you started there
+    else: dest_intersections = list(intersections) #Assumes random destination if starting off the main roads
+    #print('dest_intersections',dest_intersections)
+    destination_name = origin_name
+    while destination_name == origin_name:
+      destination_name = np.random.choice(dest_intersections, 1)[0]
     origin, destination = intersections[origin_name], intersections[destination_name]
     car = Car(env, origin, destination, links, monitor, verbose)
     car.monitor.register_car(car, day)
@@ -133,7 +161,7 @@ class Car:
     def allocate_anticip(car, link):
       if not link.has_stigmergy:
         return True
-        
+
       return np.random.uniform() < 0.5
 
     return allocate_anticip
@@ -304,7 +332,7 @@ class Car:
       self.curr_infra = ongoing_link.access_intersection()
       if self.verbose:
         print(self, "is at intersection", self.curr_infra)
-    
+
     if intersec_cell:
       intersec_cell.release(self.id)
 
@@ -320,7 +348,7 @@ class Car:
     if self.verbose:
       print(self, "is running the blind-shortest strategy from", self.origin, "to", self.destination)
       print("Its path will be (in reversed order):", path, "\n")
-    
+
     intersec_cell = None
 
     while len(path) > 0:
