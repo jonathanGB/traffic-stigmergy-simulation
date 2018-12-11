@@ -97,7 +97,9 @@ class Car:
     else: dest_intersections = list(intersections) #Assumes random destination if starting off the main roads
     #print('dest_intersections',dest_intersections)
     destination_name = origin_name
-    while destination_name == origin_name:
+    while (destination_name == origin_name or
+      network.shortest_path(intersections[origin_name], intersections[destination_name], links, intersections) == []):
+      origin_name = np.random.choice(dest_intersections, 1)[0]
       destination_name = np.random.choice(dest_intersections, 1)[0]
     origin, destination = intersections[origin_name], intersections[destination_name]
     car = Car(env, origin, destination, links, monitor, verbose)
