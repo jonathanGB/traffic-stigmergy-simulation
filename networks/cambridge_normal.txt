@@ -21,9 +21,8 @@ Western_Howard: 1815,1704
 Western_Jay: 2055,1745
 Western_Kinnaird: 2304,1772
 Western_Soden: 2553,1836
-Western_Pleasant: 2802,1852
+Western_Pleasant: 2891,1868
 Pleasant_Auburn: 2809,1767
-Western_Pleasant: 2897,1875
 Western_Franklin: 3088,1905
 Western_Green: 3416,1968
 Western_Mass: 3676,2156
@@ -118,8 +117,6 @@ Western_Jay:Western_Howard 2:0
 Western_Kinnaird:Western_Jay 2:0
 Western_Soden:Western_Kinnaird 2:0
 Western_Pleasant:Western_Soden 2:0
-Pleasant_Auburn:Western_Pleasant 2:0
-Western_Pleasant:Pleasant_Auburn 2:0
 Western_Franklin:Western_Pleasant 2:0
 Western_Green:Western_Franklin 2:0
 Western_Mass:Western_Green 2:0
@@ -133,7 +130,7 @@ Western_Howard:River_Howard 1:1
 Western_Jay:River_Jay 0:1
 Western_Kinnaird:Western_Kinnaird 1:1
 River_Pleasant:Pleasant_Auburn 1:0
-Pleasant_Auburn:Pleasant_Auburn 1:0
+Pleasant_Auburn:River_Auburn 1:0
 Pleasant_Auburn:Western_Pleasant 1:1
 Western_Franklin:River_Franklin 1:0
 Western_Green:River_Green 0:1

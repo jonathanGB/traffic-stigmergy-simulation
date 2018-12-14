@@ -40,8 +40,6 @@ class Cache:
 
   def __update_long_term_stigmergy(self):
     data = np.array(self.buffer)
-    self.buffer = []
-    self.short_start_index = 0
 
     self.long = data.mean() + 0.05 * data.std() if len(data) > 0 else self.l
 

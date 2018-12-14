@@ -1,0 +1,24 @@
+#Python script to read and process car results json files
+
+import json
+import numpy as np
+import glob
+
+files = glob.glob('*.json')
+
+for fname in files:
+  text = 'unknown_grid, unknown_scenario, unknown_run#, ' + fname[:-5] + ', '
+  with open(fname) as f:
+      data = json.load(f)
+  data = data['0']['cars']
+  #print(data)
+  keys = ['delay_times', 'travel_times', 'prop_delays']
+  text += (str(len(data[keys[0]])) + ', ')
+  for key in keys:
+    text += (str(np.mean(data[key])) + ', ') #Mean calc
+    text += (str(np.std(data[key])) + ', ') #Stddev calc
+  print('text',text)
+
+  f = open('/Users/markyork/Dropbox/code/289/Elena Results 20181210/car_data.txt', 'a+')
+  f.write('%s \n' %text)
+  f.close()

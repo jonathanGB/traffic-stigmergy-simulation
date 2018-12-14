@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from sys import exit
+from math import ceil
 
 """
 Returns the Euclidean distance.
@@ -41,7 +42,7 @@ def topology_parser(path):
       if not match:
         print("line wrongly formatted:\n\t", line)
         exit()
-    
+
       vertex_name = match.group(1)
       x, y = int(match.group(2)), int(match.group(3))
 
@@ -61,43 +62,65 @@ def topology_parser(path):
     # These define the edges forming the network.
     for line in topo_iter:
       # Regex based on the rules in `topology.md`
-      match = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+)', line)
-      if not match:
+      match4 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+)', line)
+      match6 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+):\s*(\d+):\s*(\d+)', line)
+      match7 = re.match(r'([a-zA-Z_0-9]+)\s*:\s*([a-zA-Z_0-9]+)\s*(\d+)\s*:\s*(\d+):\s*(\d+):\s*(\d+):\s*(\d+)', line)
+      if not (match4):
         print("line wrongly formatted:\n\t", line)
         exit()
-    
-      start, end = match.group(1), match.group(2)
-      forward, backward = int(match.group(3)), int(match.group(4))
+
+      start, end = match4.group(1), match4.group(2)
+      forward, backward = int(match4.group(3)), int(match4.group(4))
+
+      cells_f, cells_b = 0, 0
+      if match6:
+        cells_f, cells_b = int(match6.group(5)), int(match6.group(6))
+
+      has_stigmergy = True
+      if match7:
+        has_stigmergy = (int(match7.group(7)) != 0)
 
       if (start,end) in edges or (end,start) in edges:
-        print(start,end, "is already an existing pair")
-        exit()
-      
+          print(start,end, "is already an existing pair")
+          exit()
+
       # Compute information about the edges.
       # Note that we don't store an edge if it contains no lanes (meaning that the opposite direction is a one-way).
       l = dist(vertices[start]["pos"], vertices[end]["pos"])
+
       if forward > 0:
-        vmax_f = get_vmax(forward)
-        cells_f = int(l/vmax_f)
+        vmax_f = 0
+        if cells_f > 0:
+          vmax_f = l * 60 / (cells_f * 1000)
+        else:
+          vmax_f = get_vmax(forward)
+          cells_f = ceil(l/(vmax_f*1000/60)) #This is because we want the speed in m/min
 
         edges[(start,end)] = {
           "lanes": forward,
           "l": l,
           "vmax": vmax_f,
           "cells": cells_f,
-          "cap": forward * cells_f
+          "cap": forward * cells_f,
+          "has_stigmergy": has_stigmergy
         }
 
       if backward > 0:
-        vmax_b = get_vmax(backward)
-        cells_b = int(l/vmax_b)
+        vmax_b = 0
+
+        if cells_b > 0:
+          vmax_b = l * 60 / (cells_b * 1000)
+        else:
+          vmax_b = get_vmax(backward)
+          cells_b = ceil(l/(vmax_b*1000/60)) #This is because we want the speed in m/min
 
         edges[(end,start)] = {
           "lanes": backward,
           "l": l,
           "vmax": vmax_b,
           "cells": cells_b,
-          "cap": backward * cells_b
+          "cap": backward * cells_b,
+          "has_stigmergy": has_stigmergy
         }
 
   return vertices, edges

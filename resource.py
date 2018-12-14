@@ -1,6 +1,5 @@
 from collections import deque
-from util import generate_id
-
+from monitor import CarStatus
 
 """
 We could use `Simpy.Resource`s, but they do not provide the ability to compute the delay of requesting cells.
@@ -10,8 +9,18 @@ once the request of the resource is completed.
 class Resource:
   def __init__(self, env):
     self.env = env
+    self.link = None # sets once the link is instanciated
+    self.pos = None # sets once the link is instanciated
     self.q = deque()
-    self.tokenator = generate_id()
+
+  """
+  Register the underlying link of the resource. Links is only instanciated after the resources have been created, so
+  we have to register separately.
+  This reference makes it possible for the resources to publish to the monitor (link handles this task).
+  """
+  def register_link(self, link, i, j):
+    self.link = link
+    self.pos = (link, (i, j))
 
   """
   Returns the number of cars queued for the resource
@@ -25,9 +34,8 @@ class Resource:
   Returns a generator to call afterwards in order to truly request the resource, as well as the token
   to identify the request (necessary when releasing). 
   """
-  def request(self):
-    token = next(self.tokenator) # generate token to identify the request in the queue
-    return self.__request(token), token
+  def request(self, car_id):
+    return self.__request(car_id)
 
   def __request(self, token):
     self.q.append(token)
@@ -35,12 +43,14 @@ class Resource:
 
     while True:
       if self.q[0] == token:
-        break
+        self.link.ping_monitor_car_moving(token, (1, delay, self.pos))
+        return delay
 
+      if delay == 0:
+        self.link.ping_monitor_car_stopped(token)
+        
       yield self.env.timeout(1)
       delay += 1
-
-    return delay
 
   """
   Once we do not need the resource anymore, we need to release it for other cars to be able to access it.
